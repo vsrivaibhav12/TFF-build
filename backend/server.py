@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import Response, JSONResponse
 from contextlib import asynccontextmanager
 
-NEXT_TARGET = os.environ.get("NEXT_TARGET", "http://127.0.0.1:3000")
+NEXT_TARGET = os.environ.get("NEXT_TARGET", "http://127.0.0.1:3001")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +29,18 @@ async def proxy(path: str, request: Request):
     if request.url.query:
         url = f"{url}?{request.url.query}"
     headers = dict(request.headers)
+    # K8s ingress sets x-forwarded-host to a different internal domain than the
+    # browser-visible Origin, which trips Next.js Server Actions CSRF check
+    # ("x-forwarded-host does not match origin"). Strip both forwarded-host
+    # headers; Next.js will fall back to comparing against its internal host
+    # (which we control via allowedOrigins/allowedForwardedHosts). The original
+    # forwarded info is preserved for downstream code in standard ways.
+    origin = headers.get("origin", "")
+    headers.pop("x-forwarded-host", None)
+    headers.pop("x-forwarded-server", None)
+    # Ensure x-forwarded-proto sticks (used elsewhere)
+    if "x-forwarded-proto" not in headers and origin.startswith("https"):
+        headers["x-forwarded-proto"] = "https"
     headers.pop("host", None)
     body = await request.body()
     try:
