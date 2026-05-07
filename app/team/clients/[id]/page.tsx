@@ -37,10 +37,10 @@ export default async function TeamClientDetail({ params }: { params: { id: strin
       </div>
       <Tabs defaultValue="overview">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-          <TabsTrigger value="notices">Notices ({notices.length})</TabsTrigger>
+          <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
+          <TabsTrigger value="tasks" data-testid="tab-tasks">Tasks ({tasks.length})</TabsTrigger>
+          <TabsTrigger value="compliance" data-testid="tab-compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="notices" data-testid="tab-notices">Notices ({notices.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

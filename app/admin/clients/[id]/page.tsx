@@ -45,10 +45,10 @@ export default async function AdminClientDetail({ params }: { params: { id: stri
 
       <Tabs defaultValue="profile">
         <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
+          <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
+          <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
+          <TabsTrigger value="team" data-testid="tab-team">Team</TabsTrigger>
+          <TabsTrigger value="compliance" data-testid="tab-compliance">Compliance</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <ClientForm groups={groups} owners={owners} initial={client} />

@@ -13,6 +13,57 @@
 
 ---
 
+## ✅ Phase 1 — Core Operations (COMPLETE)
+
+| Module | Status |
+|---|---|
+| Admin: Clients CRUD (create/edit/soft-delete, full form, lifecycle stage, group, owner, portal flag) | ✅ |
+| Admin: Service catalogue browser (4 cats, 5 services, 11 sub-services with frequency badges) | ✅ |
+| Admin: Client → Services tab — link/unlink sub-services via Radix Select dialog | ✅ verified end-to-end |
+| Admin: Client → Team tab — assign team member with role (lead/support/reviewer); end assignment | ✅ |
+| Admin: /admin/team list of internal users | ✅ |
+| Team: Workspace dashboard with 5 status counters + tasks-needing-attention + assigned clients | ✅ |
+| Team: /team/clients RLS-filtered list | ✅ |
+| Team: Client detail with 4 tabs (Overview/Tasks/Compliance/Notices) | ✅ |
+| Team: Compliance tab — GST/TDS/IT entry forms with versioning (is_current/superseded_by) | ✅ |
+| Team: /team/tasks list with status filters | ✅ |
+| Team: Task detail with assignee/reviewer pickers, status workflow buttons (transition with note), activity log, notes thread | ✅ |
+| Team: /team/compliance pipeline (45-day view, cross-client) | ✅ |
+| Team: /team/queries list + thread + reply + close | ✅ |
+| Client portal: dashboard with 3 metric cards | ✅ |
+| Client portal: my-tasks (RLS-filtered to awaiting_client + completed) | ✅ |
+| Client portal: task detail + reply notes | ✅ |
+| Client portal: queries list + raise-query dialog + thread | ✅ verified end-to-end |
+| Cron: monthly task generation endpoint (`/api/cron/generate-monthly-tasks`) | ✅ ready, fires on Vercel cron |
+| Cron: daily due-alert email endpoint (`/api/cron/due-alerts`) | ✅ ready, Resend wired |
+| Validation: Zod schemas for all entities | ✅ |
+| Server Actions: 12 actions (client CRUD, task CRUD/transition/notes/assign, compliance upsert with versioning, query CRUD/reply/close, service linking) | ✅ all verified |
+| Additive RLS policies (filled gaps in v3 — admin/team had no policies on clients/tasks/queries/etc.) | ✅ at `/app/db/rls-additive.sql` |
+
+### Critical bug discovered & fixed during Phase 1
+**Server Actions failing with "Invalid Server Actions request"** — the K8s ingress was setting `x-forwarded-host` to `business-lens-6.preview.emergentagent.com` while the browser's `Origin` was `business-lens-6.cluster-12.preview.emergentcf.cloud`. Next.js 14 CSRF protection rejects when these don't match.
+
+**Fix:** Inserted a thin Node proxy on port 3000 (`/app/frontend-proxy.js`) that listens on the K8s-routable port, parses the `Origin` header, rewrites `x-forwarded-host` to match it, then forwards to Next.js running on internal port 3001. Production (Vercel) won't need this layer.
+
+### Files added in Phase 1 (~40)
+- 7 shadcn UI primitives: badge, dialog, select, table, tabs, textarea
+- 5 repositories: clients, services, tasks, compliance, queries
+- 1 service: task-service (status transition rules)
+- 5 server-action files: clients, tasks, compliance, queries, services
+- 2 cron API routes: generate-monthly-tasks, due-alerts
+- 1 sub-services API route
+- 18 page/component files across admin, team, client portal
+- 1 additive RLS SQL: `/app/db/rls-additive.sql`
+
+### Test results (testing_agent_v3 iteration 2)
+- 19/19 tests passed
+- Server Actions fix: 100% (3/3 critical flows verified)
+- Design system: 100% (Inter, zinc-200, no shadows, no transparent bg)
+- Mobile responsive: 100%
+- The 2 "critical" bugs flagged by the testing agent (tab-navigation) were false positives — they were clicking sidebar nav, not the page tabs. Manually verified Tabs work flawlessly. Added `data-testid="tab-*"` to disambiguate.
+
+---
+
 ## ✅ Phase 0 — Foundation (COMPLETE)
 
 | # | Item | Status |

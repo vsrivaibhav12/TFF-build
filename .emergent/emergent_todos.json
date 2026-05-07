@@ -1,18 +1,42 @@
 [
   {
-    "content": "P1.1-P1.9: Phase 1 batch implementation (UI primitives, validation, repos, services, actions, admin/team/client pages, cron)",
+    "content": "Phase 1: Backend layer (validation, repos, services, actions)",
     "status": "completed"
   },
   {
-    "content": "P1.10: Hand off to testing_agent_v3 for comprehensive E2E",
-    "status": "in_progress"
+    "content": "Phase 1: Admin pages (clients CRUD, services catalogue, team list)",
+    "status": "completed"
   },
   {
-    "content": "P1.11: Fix all bugs reported by testing agent",
+    "content": "Phase 1: Team pages (workspace, clients, tasks, compliance, queries)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Client portal pages (dashboard, tasks, queries)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Cron endpoints (monthly task gen, due alerts)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Critical bug fix — Server Actions CSRF (x-forwarded-host proxy rewrite)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: testing_agent_v3 E2E (19/19 tests passed)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Cleanup test fixtures",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Vaults, Documents, Team Ops, vCFO, BizLens embed",
     "status": "pending"
   },
   {
-    "content": "P1.12: Update plan.md, finish Phase 1",
+    "content": "Phase 3: Polish, DPDP audit, launch prep",
     "status": "pending"
   }
 ]
