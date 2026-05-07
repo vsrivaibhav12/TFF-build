@@ -1,0 +1,58 @@
+[
+  {
+    "content": "Phase 0.1: Archive existing FARM template to /app/legacy/",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 0.2: Download & extract BizLens Tool.zip",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.3: Generate CREDENTIALS_KEY (32-byte AES)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.4: Bootstrap Next.js + TS + Tailwind + shadcn/ui in /app",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.5: Install all deps (Supabase SSR, Zod, Resend, react-hook-form, lucide, etc)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.6: Configure supervisor (Next.js on 3000, proxy on 8001 for /api/*)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.7: Apply schema.sql v3 to Supabase (46 tables, RLS, indexes)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.8: Create Supabase Storage buckets (documents, dsc-files, engagement-letters)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.9: Build lib/ scaffolding (supabase clients, auth, crypto, email, repositories pattern)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.10: Apply design system tokens (Inter, zinc+teal-600, layout shells)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.11: Auth flow (login, role-based redirect, middleware)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.12: Seed reversible demo data (1 admin, 1 client, 1 team, sample services)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.13: Day-3 RLS test script (7 tests from DPDP doc)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 0.14: Verify Phase 0 end-to-end & update plan.md",
+    "status": "pending"
+  }
+]

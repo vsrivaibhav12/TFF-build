@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Notion/Linear neutral palette */
+    --background: 0 0% 100%;
+    --foreground: 240 6% 10%;        /* zinc-900 */
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
+    --primary: 174 84% 32%;          /* teal-600 #0D9488 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;         /* zinc-100 */
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;  /* zinc-500 */
+    --accent: 174 84% 32%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;        /* red-600 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;            /* zinc-200 */
+    --input: 240 6% 90%;
+    --ring: 174 84% 32%;
+    --radius: 0.75rem;               /* rounded-xl */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html, body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+  }
+  body {
+    font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  h1, h2, h3, h4 {
+    @apply tracking-tight text-zinc-900;
+  }
+  /* Generous spacing utilities matching design system */
+  .section-pad { @apply py-24 md:py-32; }
+  .container-app { @apply mx-auto w-full max-w-7xl px-6 md:px-8; }
+  .container-marketing { @apply mx-auto w-full max-w-6xl px-6 md:px-8; }
+}
+
+/* Card surface convention: 1px border, no drop shadow on cards */
+.tff-card {
+  @apply rounded-xl border border-zinc-200 bg-white;
+}
+.tff-card-hover {
+  @apply transition-colors hover:border-zinc-300;
+}

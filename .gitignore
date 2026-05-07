@@ -1,0 +1,11 @@
+node_modules
+.next
+.env.local
+.env
+*.log
+.DS_Store
+legacy
+biz-lens-source
+.vercel
+node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
