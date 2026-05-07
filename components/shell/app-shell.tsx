@@ -1,16 +1,46 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import type { LucideIcon } from 'lucide-react';
-import { LogOut, Menu, X } from 'lucide-react';
+import {
+  LogOut,
+  Menu,
+  X,
+  LayoutDashboard,
+  Layout,
+  Users,
+  Briefcase,
+  FileText,
+  MessageSquare,
+  BarChart3,
+  Calendar,
+  Settings,
+  ShieldCheck,
+  type LucideIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
+// Icon registry: serializable string keys, resolved on the client.
+const ICONS: Record<string, LucideIcon> = {
+  layout: Layout,
+  dashboard: LayoutDashboard,
+  users: Users,
+  briefcase: Briefcase,
+  file: FileText,
+  message: MessageSquare,
+  chart: BarChart3,
+  calendar: Calendar,
+  settings: Settings,
+  shield: ShieldCheck,
+};
+
+export type NavIconName = keyof typeof ICONS;
+
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIconName;
 }
 
 export default function AppShell({
@@ -50,7 +80,7 @@ export default function AppShell({
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {nav.map((n) => {
-            const Icon = n.icon;
+            const Icon = ICONS[n.icon] ?? Layout;
             const active = pathname === n.href || pathname.startsWith(n.href + '/');
             return (
               <Link
@@ -88,7 +118,7 @@ export default function AppShell({
         <Link href="/" className="text-sm font-bold">
           The <span className="text-teal-600">Fiscal Fulcrum</span>
         </Link>
-        <button onClick={() => setMobileOpen((v) => !v)} className="p-2">
+        <button onClick={() => setMobileOpen((v) => !v)} className="p-2" aria-label="menu">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
@@ -96,7 +126,7 @@ export default function AppShell({
         <div className="md:hidden fixed inset-0 z-20 bg-white pt-14">
           <nav className="px-4 py-2 space-y-1">
             {nav.map((n) => {
-              const Icon = n.icon;
+              const Icon = ICONS[n.icon] ?? Layout;
               const active = pathname === n.href || pathname.startsWith(n.href + '/');
               return (
                 <Link
@@ -113,7 +143,11 @@ export default function AppShell({
                 </Link>
               );
             })}
-            <button onClick={logout} className="flex items-center gap-3 px-3 py-3 text-base text-zinc-700">
+            <button
+              onClick={logout}
+              data-testid="logout-btn"
+              className="flex items-center gap-3 px-3 py-3 text-base text-zinc-700 w-full"
+            >
               <LogOut className="h-5 w-5" /> Sign out
             </button>
           </nav>

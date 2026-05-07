@@ -15,6 +15,9 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'path';
 loadEnv({ path: path.join(process.cwd(), '.env.local') });
+// Polyfill WebSocket for Node < 22 (Supabase realtime client requires it)
+import WS from 'ws';
+(globalThis as any).WebSocket = WS;
 import { createClient } from '@supabase/supabase-js';
 
 const SEED_TAG = 'PHASE0_DEMO';
@@ -93,9 +96,10 @@ async function main() {
         pan: 'DEMOP1234D',
         gstin: '33DEMOP1234D1Z5',
         group_id: grp!.id,
-        owner_id: teamId,
-        lifecycle_stage: 'active',
-        notes_internal: SEED_TAG,
+        primary_owner_id: teamId,
+        lifecycle_stage: 'caas_bizlens',
+        portal_enabled: true,
+        notes: SEED_TAG,
       })
       .select('id')
       .single();
@@ -103,35 +107,42 @@ async function main() {
     clientRowId = data!.id;
   }
 
-  // 5. Link client_user
-  await sb
+  // 5. Link client_user (no unique constraint in schema; check-then-insert)
+  const { data: existingLink } = await sb
     .from('client_users')
-    .upsert(
-      { client_id: clientRowId, user_id: clientUserId, role_in_client: 'owner' },
-      { onConflict: 'client_id,user_id' }
-    );
-
-  // 6. Team-client assignment
-  await sb.from('team_client_assignment').upsert(
-    {
+    .select('id')
+    .eq('client_id', clientRowId)
+    .eq('user_id', clientUserId)
+    .maybeSingle();
+  if (!existingLink) {
+    const { error: cuErr } = await sb.from('client_users').insert({
       client_id: clientRowId,
-      user_id: teamId,
-      role_in_assignment: 'lead',
+      user_id: clientUserId,
+      role_in_client: 'owner',
       is_active: true,
-    },
-    { onConflict: 'client_id,user_id,role_in_assignment' }
-  );
-
-  // 7. Service catalogue (minimal sample)
-  const cats = [
-    { code: 'compliance', name: 'Compliance as a Service' },
-    { code: 'analytics', name: 'BizLens Analytics' },
-    { code: 'vcfo', name: 'Virtual CFO' },
-    { code: 'controls', name: 'Process & Controls' },
-  ];
-  for (const c of cats) {
-    await sb.from('service_categories').upsert({ code: c.code, name: c.name, description: SEED_TAG }, { onConflict: 'code' });
+    });
+    if (cuErr) throw cuErr;
   }
+
+  // 6. Team-client assignment (no unique key in schema; check-then-insert)
+  const { data: existingAssign } = await sb
+    .from('team_client_assignment')
+    .select('id')
+    .eq('client_id', clientRowId)
+    .eq('team_user_id', teamId)
+    .maybeSingle();
+  if (!existingAssign) {
+    await sb.from('team_client_assignment').insert({
+      client_id: clientRowId,
+      team_user_id: teamId,
+      role: 'lead',
+      assigned_from: new Date().toISOString().slice(0, 10),
+    });
+  }
+
+  // 7. Service catalogue is already seeded as part of schema.sql DDL
+  //    (service_categories + services + sub_services are inserted by the schema).
+  //    Nothing more to do here.
 
   console.log('[seed] DONE');
   console.log('---');

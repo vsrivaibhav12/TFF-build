@@ -1,90 +1,149 @@
 /**
- * Apply /app/db/schema.sql to Supabase Postgres.
- * Idempotency: schema.sql is intended for first-time deployment.
- *   Re-running will fail on duplicates. Use --reset to drop public schema first.
+ * Apply /app/db/schema.sql to Supabase Postgres via Management API.
+ *
+ * Uses the SUPABASE_ACCESS_TOKEN (Personal Access Token) and the project's
+ * /v1/projects/{ref}/database/query endpoint to run arbitrary SQL.
  *
  * Usage:
- *   yarn db:apply-schema            # apply only
+ *   yarn db:apply-schema            # apply only (fails on duplicates)
  *   yarn db:apply-schema --reset    # DROP+RECREATE public schema, then apply
- *
- * Connects via direct Postgres on the Supabase pooler (port 5432).
  */
 import { config as loadEnv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 loadEnv({ path: path.join(process.cwd(), '.env.local') });
-import { Client } from 'pg';
+
+const PAT = process.env.SUPABASE_ACCESS_TOKEN!;
+const REF = process.env.SUPABASE_PROJECT_REF!;
+const ENDPOINT = `https://api.supabase.com/v1/projects/${REF}/database/query`;
+
+async function runSql(query: string, label: string) {
+  const res = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${PAT}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`[${label}] HTTP ${res.status}: ${text.slice(0, 800)}`);
+  }
+  return text;
+}
 
 async function main() {
+  if (!PAT || !REF) throw new Error('SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF missing');
+
   const reset = process.argv.includes('--reset');
   const schemaPath = path.join(process.cwd(), 'db', 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
 
-  const host = process.env.SUPABASE_DB_HOST!;
-  const password = process.env.SUPABASE_DB_PASSWORD!;
-  const projectRef = (host.match(/db\.(.+?)\.supabase\.co/) || [])[1] || '';
-  // Try multiple connection strategies (Supabase has 3 endpoints):
-  //   1. direct        : db.<ref>.supabase.co:5432  (IPv6-only sometimes; may fail in containers)
-  //   2. session pooler: aws-0-<region>.pooler.supabase.com:5432  (IPv4, persistent)
-  //   3. txn pooler    : aws-0-<region>.pooler.supabase.com:6543  (IPv4, transaction-mode)
-  const regions = ['ap-south-1', 'us-east-1', 'us-east-2', 'eu-central-1', 'ap-southeast-1'];
-  const candidates: any[] = [
-    { description: 'direct (5432)', host, port: 5432, user: 'postgres', database: 'postgres' },
-  ];
-  // Newer Supabase projects use aws-1-<region>; older use aws-0-<region>. Try both.
-  for (const prefix of ['aws-1', 'aws-0']) {
-    for (const r of regions) {
-      candidates.push({
-        description: `pooler ${prefix}-${r} (5432 session)`,
-        host: `${prefix}-${r}.pooler.supabase.com`,
-        port: 5432,
-        user: `postgres.${projectRef}`,
-        database: 'postgres',
-      });
-      candidates.push({
-        description: `pooler ${prefix}-${r} (6543 txn)`,
-        host: `${prefix}-${r}.pooler.supabase.com`,
-        port: 6543,
-        user: `postgres.${projectRef}`,
-        database: 'postgres',
-      });
-    }
+  console.log(`[schema] target = project ${REF}`);
+  console.log(`[schema] schema.sql = ${(sql.length / 1024).toFixed(1)} KB`);
+
+  // ---------------------------------------------------------------
+  // IN-MEMORY COMPATIBILITY PATCH (file on disk is untouched)
+  // schema.sql v3 has integer FK literals in 2 INSERT blocks where the
+  // FK column is UUID. Rewrite those literals as UUID lookups so the
+  // schema applies cleanly. NO STRUCTURAL CHANGES.
+  // ---------------------------------------------------------------
+  let sqlPatched = sql;
+  const patchA = `INSERT INTO services (category_id, name, code, description) VALUES
+  ((SELECT id FROM service_categories WHERE display_order = 1), 'Compliance as a Service', 'CAAS', 'GST, TDS, IT filing with compliance tracking'),
+  ((SELECT id FROM service_categories WHERE display_order = 2), 'BizLens Analytics', 'BIZLENS', 'Financial intelligence and analytics engine'),
+  ((SELECT id FROM service_categories WHERE display_order = 3), 'Virtual CFO', 'VCFO', 'Monthly financial strategy and advisory'),
+  ((SELECT id FROM service_categories WHERE display_order = 4), 'CBAM & ESG Advisory', 'CBAM', 'Carbon border adjustment and ESG compliance'),
+  ((SELECT id FROM service_categories WHERE display_order = 4), 'Process & Controls (SOX/ICFR)', 'SOX', 'Internal controls and ICFR for US-facing entities')
+ON CONFLICT DO NOTHING;`;
+  sqlPatched = sqlPatched.replace(
+    /INSERT INTO services \(category_id, name, code, description\) VALUES[\s\S]*?ON CONFLICT DO NOTHING;/,
+    patchA
+  );
+
+  const patchB = `INSERT INTO sub_services (service_id, name, code, frequency, due_day_of_month, is_recurring) VALUES
+  ((SELECT id FROM services WHERE code = 'CAAS'), 'GSTR-3B Filing', 'GST_3B', 'monthly', 20, TRUE),
+  ((SELECT id FROM services WHERE code = 'CAAS'), 'GSTR-1 Filing', 'GST_1', 'monthly', 11, TRUE),
+  ((SELECT id FROM services WHERE code = 'CAAS'), 'GSTR-9 Filing', 'GST_9', 'annually', 31, TRUE),
+  ((SELECT id FROM services WHERE code = 'CAAS'), 'TDS Quarterly Filing', 'TDS_Q', 'quarterly', 15, TRUE),
+  ((SELECT id FROM services WHERE code = 'CAAS'), 'Income Tax Return', 'ITR', 'annually', 31, TRUE),
+  ((SELECT id FROM services WHERE code = 'BIZLENS'), 'Monthly BizLens Update', 'BL_MONTHLY', 'monthly', 5, TRUE),
+  ((SELECT id FROM services WHERE code = 'BIZLENS'), 'Quarterly Analytics Review', 'BL_QUARTERLY', 'quarterly', 10, TRUE),
+  ((SELECT id FROM services WHERE code = 'VCFO'), 'Monthly vCFO Review Call', 'VCFO_CALL', 'monthly', 15, TRUE),
+  ((SELECT id FROM services WHERE code = 'VCFO'), 'Monthly Advisory Note', 'VCFO_NOTE', 'monthly', 20, TRUE),
+  ((SELECT id FROM services WHERE code = 'CBAM'), 'CBAM Quarterly Assessment', 'CBAM_Q', 'quarterly', 15, TRUE),
+  ((SELECT id FROM services WHERE code = 'SOX'), 'SOX Control Assessment', 'SOX_ASSESS', 'annually', 31, FALSE)
+ON CONFLICT DO NOTHING;`;
+  sqlPatched = sqlPatched.replace(
+    /INSERT INTO sub_services \(service_id, name, code, frequency, due_day_of_month, is_recurring\) VALUES[\s\S]*?ON CONFLICT DO NOTHING;/,
+    patchB
+  );
+
+  if (sqlPatched === sql) {
+    console.warn('[schema] WARN: compatibility patch did not match \u2014 schema may have changed since');
+  } else {
+    console.log('[schema] applied in-memory FK-literal patch (services, sub_services)');
   }
 
-  let lastErr: any;
-  for (const c of candidates) {
-    const client = new Client({
-      host: c.host,
-      port: c.port,
-      user: c.user,
-      password,
-      database: c.database,
-      ssl: { rejectUnauthorized: false },
-      statement_timeout: 120_000,
-      connectionTimeoutMillis: 15_000,
-    });
-    try {
-      console.log(`[schema] connecting via ${c.description} -> ${c.host}:${c.port} (user=${c.user})`);
-      await client.connect();
-      console.log('[schema] connected');
-
-      if (reset) {
-        console.log('[schema] --reset: dropping & recreating public schema');
-        await client.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;');
-      }
-
-      console.log('[schema] applying schema.sql ...');
-      await client.query(sql);
-      console.log('[schema] DONE');
-      await client.end();
-      return;
-    } catch (e: any) {
-      lastErr = e;
-      console.warn(`[schema] failed via ${c.description}: ${e?.message ?? e}`);
-      try { await client.end(); } catch {}
-    }
+  // ---------------------------------------------------------------
+  // PATCH C: compliance_status generated columns reference CURRENT_DATE
+  // which is STABLE (not IMMUTABLE). Postgres rejects this. Convert to
+  // plain columns; the app layer computes them on read.
+  // ---------------------------------------------------------------
+  const beforeC = sqlPatched;
+  sqlPatched = sqlPatched.replace(
+    /days_to_deadline INT GENERATED ALWAYS AS \(\s*EXTRACT\(DAY FROM \(due_date - CURRENT_DATE\)\)::INT\s*\) STORED,/,
+    'days_to_deadline INT,'
+  );
+  sqlPatched = sqlPatched.replace(
+    /is_overdue BOOLEAN GENERATED ALWAYS AS \(\s*CURRENT_DATE > due_date AND status != 'filed'\s*\) STORED,/,
+    'is_overdue BOOLEAN DEFAULT FALSE,'
+  );
+  if (sqlPatched !== beforeC) {
+    console.log('[schema] applied in-memory generated-column patch (compliance_status)');
   }
-  throw lastErr ?? new Error('all connection candidates failed');
+
+  if (reset) {
+    console.log('[schema] --reset: dropping & recreating public schema');
+    await runSql(
+      `DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;`,
+      'reset'
+    );
+    console.log('[schema] reset OK');
+  }
+
+  console.log('[schema] applying schema.sql ...');
+  const start = Date.now();
+  await runSql(sqlPatched, 'apply');
+  console.log(`[schema] DONE in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+
+  // Restore Supabase role grants on all newly-created public tables.
+  // After DROP+CREATE schema, default privileges aren't auto-applied.
+  console.log('[schema] granting role privileges on public tables ...');
+  await runSql(
+    `GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+     GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+     GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+     GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role, authenticated;
+     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role, authenticated;
+     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;`,
+    'grants'
+  );
+  console.log('[schema] grants applied');
+
+  // Quick sanity: count tables in public
+  const tablesRes = await runSql(
+    `SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';`,
+    'count'
+  );
+  console.log('[schema] public tables ->', tablesRes);
 }
 
 main().catch((e) => {

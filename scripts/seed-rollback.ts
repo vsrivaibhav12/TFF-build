@@ -6,6 +6,8 @@
 import { config as loadEnv } from 'dotenv';
 import path from 'path';
 loadEnv({ path: path.join(process.cwd(), '.env.local') });
+import WS from 'ws';
+(globalThis as any).WebSocket = WS;
 import { createClient } from '@supabase/supabase-js';
 
 const sb = createClient(
@@ -36,7 +38,7 @@ async function main() {
     await sb.from('clients').delete().in('id', ids);
   }
   await sb.from('client_groups').delete().like('name', '[DEMO]%');
-  await sb.from('service_categories').delete().eq('description', 'PHASE0_DEMO');
+  // service_categories was seeded by schema.sql DDL itself \u2014 do not delete.
 
   // 2. delete profiles + auth users
   const { data: list } = await sb.auth.admin.listUsers({ page: 1, perPage: 200 });
