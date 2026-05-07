@@ -138,6 +138,16 @@ GRANT ALL ON SCHEMA public TO anon, authenticated, service_role;`,
   );
   console.log('[schema] grants applied');
 
+  // Additive RLS policies (fills schema.sql v3 gaps where admin/team had no
+  // policy on core tables). File on disk (schema.sql) is unchanged.
+  const rlsPath = path.join(process.cwd(), 'db', 'rls-additive.sql');
+  if (fs.existsSync(rlsPath)) {
+    console.log('[schema] applying additive RLS policies...');
+    const rlsSql = fs.readFileSync(rlsPath, 'utf8');
+    await runSql(rlsSql, 'rls-additive');
+    console.log('[schema] additive RLS applied');
+  }
+
   // Quick sanity: count tables in public
   const tablesRes = await runSql(
     `SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';`,

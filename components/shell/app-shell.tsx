@@ -145,7 +145,7 @@ export default function AppShell({
             })}
             <button
               onClick={logout}
-              data-testid="logout-btn"
+              data-testid="mobile-logout-btn"
               className="flex items-center gap-3 px-3 py-3 text-base text-zinc-700 w-full"
             >
               <LogOut className="h-5 w-5" /> Sign out
