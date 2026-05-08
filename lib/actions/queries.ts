@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/require-role';
+import { requireCapability } from '@/lib/auth/require-capability';
 import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { createQuerySchema, replyQuerySchema, type CreateQueryInput } from '@/lib/validation/schemas';
 
@@ -51,10 +52,13 @@ export async function replyQueryAction(input: { query_id: string; message: strin
       sender_id: me.id,
     });
     if (error) return fail(error.message, 'DB');
-    // Bump query.updated_at + flip status if needed
+    // Bump query.updated_at and flip status based on who replied:
+    //  • client reply → 'open'         (back in team's queue)
+    //  • team / admin → 'in_progress'  (waiting on client)
+    const nextStatus = me.role === 'client' ? 'open' : 'in_progress';
     await sb
       .from('queries')
-      .update({ updated_at: new Date().toISOString(), status: me.role === 'client' ? 'in_progress' : 'in_progress' })
+      .update({ updated_at: new Date().toISOString(), status: nextStatus })
       .eq('id', parsed.data.query_id);
     revalidatePath(`/portal/queries/${parsed.data.query_id}`);
     revalidatePath(`/team/queries/${parsed.data.query_id}`);
@@ -66,7 +70,8 @@ export async function replyQueryAction(input: { query_id: string; message: strin
 
 export async function closeQueryAction(input: { query_id: string; resolution_notes?: string }): Promise<ActionResult<void>> {
   try {
-    await requireRole(['admin', 'team']);
+    const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'queries.assign');
     const sb = createClient();
     const { error } = await sb
       .from('queries')

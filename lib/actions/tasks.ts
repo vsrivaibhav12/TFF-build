@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/require-role';
+import { requireCapability } from '@/lib/auth/require-capability';
 import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { createTaskSchema, transitionTaskSchema, type CreateTaskInput, type TaskStatus } from '@/lib/validation/schemas';
 import { transitionTaskStatus, addTaskNote } from '@/lib/services/task-service';
@@ -9,6 +10,7 @@ import { transitionTaskStatus, addTaskNote } from '@/lib/services/task-service';
 export async function createTaskAction(input: CreateTaskInput): Promise<ActionResult<{ id: string }>> {
   try {
     const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'tasks.assign');
     const parsed = createTaskSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
     const sb = createClient();
@@ -66,6 +68,7 @@ export async function addTaskNoteAction(input: { task_id: string; body: string }
 export async function assignTaskAction(input: { task_id: string; assigned_to?: string | null; reviewer_id?: string | null }): Promise<ActionResult<void>> {
   try {
     const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'tasks.assign');
     const sb = createClient();
     const updates: any = { updated_at: new Date().toISOString() };
     if (input.assigned_to !== undefined) updates.assigned_to = input.assigned_to || null;

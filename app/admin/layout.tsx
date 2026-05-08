@@ -12,7 +12,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/clients', label: 'Clients', icon: 'users' },
         { href: '/admin/services', label: 'Services', icon: 'settings' },
         { href: '/admin/team', label: 'Team', icon: 'shield' },
+        { href: '/admin/dsc', label: 'DSC Vault', icon: 'shield' },
+        { href: '/admin/credentials', label: 'Credentials', icon: 'key' },
+        { href: '/admin/payroll', label: 'Payroll', icon: 'wallet' },
         { href: '/admin/bizlens', label: 'BizLens', icon: 'chart' },
+        { href: '/admin/audit', label: 'Audit', icon: 'scroll' },
       ]}
     >
       {children}

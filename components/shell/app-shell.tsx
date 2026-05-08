@@ -15,11 +15,20 @@ import {
   Calendar,
   Settings,
   ShieldCheck,
+  KeyRound,
+  Wallet,
+  TrendingUp,
+  ScrollText,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import NotificationsBell from './notifications-bell';
+import CommandPalette from './command-palette';
+import ShortcutsHelp from '@/components/sophistication/shortcuts-help';
+import ViewAsClientToggle from '@/components/sophistication/view-as-client-toggle';
 
 // Icon registry: serializable string keys, resolved on the client.
 const ICONS: Record<string, LucideIcon> = {
@@ -33,6 +42,11 @@ const ICONS: Record<string, LucideIcon> = {
   calendar: Calendar,
   settings: Settings,
   shield: ShieldCheck,
+  key: KeyRound,
+  wallet: Wallet,
+  trending: TrendingUp,
+  scroll: ScrollText,
+  clipboard: ClipboardList,
 };
 
 export type NavIconName = keyof typeof ICONS;
@@ -118,9 +132,12 @@ export default function AppShell({
         <Link href="/" className="text-sm font-bold">
           The <span className="text-teal-600">Fiscal Fulcrum</span>
         </Link>
-        <button onClick={() => setMobileOpen((v) => !v)} className="p-2" aria-label="menu">
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationsBell />
+          <button onClick={() => setMobileOpen((v) => !v)} className="p-2" aria-label="menu">
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-20 bg-white pt-14">
@@ -156,8 +173,16 @@ export default function AppShell({
 
       {/* Main */}
       <main className="flex-1 min-w-0 px-6 md:px-8 py-8 md:py-12 pt-20 md:pt-12">
+        {/* Desktop top bar (notifications + utilities) */}
+        <div className="hidden md:flex items-center justify-end gap-2 mb-6">
+          <NotificationsBell />
+        </div>
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
+      {/* Global overlays / palettes */}
+      <CommandPalette />
+      <ShortcutsHelp />
+      {(role === 'admin' || role === 'team') && <ViewAsClientToggle />}
     </div>
   );
 }

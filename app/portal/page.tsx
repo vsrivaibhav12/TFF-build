@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateIST } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import InsightStrip from '@/components/insights/insight-strip';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,8 @@ export default async function ClientPortalDashboard() {
         <Metric label="Open queries" value={queries.filter((q: any) => q.status !== 'resolved' && q.status !== 'closed').length} variant="teal" />
         <Metric label="Linked entities" value={clients.length} />
       </div>
+
+      {clients[0]?.id && <InsightStrip clientId={clients[0].id} limit={3} />}
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">

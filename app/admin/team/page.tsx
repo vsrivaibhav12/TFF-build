@@ -16,7 +16,12 @@ export default async function AdminTeamPage() {
         <Table>
           <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
           <TableBody>{team.map((u: any) => (
-            <TableRow key={u.id}><TableCell className="font-medium">{u.full_name}</TableCell><TableCell>{u.email}</TableCell><TableCell><Badge variant={u.role === 'admin' ? 'teal' : 'outline'}>{u.role}</Badge></TableCell><TableCell>{u.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="warning">Inactive</Badge>}</TableCell></TableRow>
+            <TableRow key={u.id} className="cursor-pointer hover:bg-zinc-50">
+              <TableCell className="font-medium"><a href={`/admin/team/${u.id}`} className="hover:underline" data-testid={`team-row-${u.id}`}>{u.full_name}</a></TableCell>
+              <TableCell>{u.email}</TableCell>
+              <TableCell><Badge variant={u.role === 'admin' ? 'teal' : 'outline'}>{u.role}</Badge></TableCell>
+              <TableCell>{u.is_active ? <Badge variant="success">Active</Badge> : <Badge variant="warning">Inactive</Badge>}</TableCell>
+            </TableRow>
           ))}</TableBody>
         </Table>
       </div>

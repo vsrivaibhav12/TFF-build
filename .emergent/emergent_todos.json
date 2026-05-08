@@ -1,42 +1,34 @@
 [
   {
-    "content": "Phase 1: Backend layer (validation, repos, services, actions)",
+    "content": "Phase A complete (foundations, capabilities, portal visibility, onboarding wizard, notifications)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Admin pages (clients CRUD, services catalogue, team list)",
+    "content": "Phase B complete (DSC vault, Credentials vault, Documents, Notices, Hearings, Attendance, Leave, Payroll)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Team pages (workspace, clients, tasks, compliance, queries)",
+    "content": "Phase C complete (Compliance calendar, Tax projection, BizLens shell+bridge, vCFO, Insight Engine)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Client portal pages (dashboard, tasks, queries)",
+    "content": "Phase D complete (Notification digest cron, Insight cron, Admin firm dashboard, Audit UI)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Cron endpoints (monthly task gen, due alerts)",
+    "content": "Phase E complete (cmd-K palette, saved views, bulk actions, view-as-client, version diff, empty state, shortcuts)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: Critical bug fix — Server Actions CSRF (x-forwarded-host proxy rewrite)",
+    "content": "Phase F complete (legal docs, DPDP audit plan, production hardening checklist, launch run-book)",
     "status": "completed"
   },
   {
-    "content": "Phase 1: testing_agent_v3 E2E (19/19 tests passed)",
-    "status": "completed"
+    "content": "Verify with login + screenshot end-to-end before testing agent",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 1: Cleanup test fixtures",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: Vaults, Documents, Team Ops, vCFO, BizLens embed",
-    "status": "pending"
-  },
-  {
-    "content": "Phase 3: Polish, DPDP audit, launch prep",
+    "content": "Run testing agent (single pass) for backend + frontend regression",
     "status": "pending"
   }
 ]

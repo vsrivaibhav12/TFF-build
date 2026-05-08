@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/require-role';
+import { requireCapability } from '@/lib/auth/require-capability';
 import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { gstFilingSchema, tdsFilingSchema, itFilingSchema, type GstFilingInput, type TdsFilingInput, type ItFilingInput } from '@/lib/validation/schemas';
 
@@ -44,6 +45,7 @@ async function supersedeAndInsert<T extends { client_id: string }>(
 export async function upsertGstFilingAction(input: GstFilingInput): Promise<ActionResult<{ id: string }>> {
   try {
     const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'compliance.enter');
     const parsed = gstFilingSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
     const id = await supersedeAndInsert('gst_filings',
@@ -62,6 +64,7 @@ export async function upsertGstFilingAction(input: GstFilingInput): Promise<Acti
 export async function upsertTdsFilingAction(input: TdsFilingInput): Promise<ActionResult<{ id: string }>> {
   try {
     const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'compliance.enter');
     const parsed = tdsFilingSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
     const id = await supersedeAndInsert('tds_filings',
@@ -79,6 +82,7 @@ export async function upsertTdsFilingAction(input: TdsFilingInput): Promise<Acti
 export async function upsertItFilingAction(input: ItFilingInput): Promise<ActionResult<{ id: string }>> {
   try {
     const me = await requireRole(['admin', 'team']);
+    await requireCapability(me, 'compliance.enter');
     const parsed = itFilingSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
     const id = await supersedeAndInsert('it_filings',

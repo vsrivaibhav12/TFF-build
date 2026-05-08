@@ -51,6 +51,29 @@ export async function listNotices(clientId: string) {
   return data ?? [];
 }
 
+/**
+ * Aggregate of GST + TDS + IT filings whose `due_date` falls in the next N days
+ * AND `is_current = TRUE`. RLS automatically scopes to the caller's accessible
+ * clients (admin = all, team = assigned, client = own). Used by /team/compliance.
+ */
+export async function listAllUpcomingDueDates(days = 45) {
+  const sb = createClient();
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const horizon = new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  const filt = (q: any) => q.eq('is_current', true).gte('due_date', todayISO).lte('due_date', horizon);
+
+  const [gst, tds, it] = await Promise.all([
+    filt(sb.from('gst_filings').select('id, client_id, return_type, period_year, period_month, status, due_date, clients(business_name)')),
+    filt(sb.from('tds_filings').select('id, client_id, period_quarter, period_year, status, due_date, clients(business_name)')),
+    filt(sb.from('it_filings').select('id, client_id, fy_ending_year, status, due_date, clients(business_name)')),
+  ]);
+  return {
+    gst: gst.error ? [] : (gst.data ?? []),
+    tds: tds.error ? [] : (tds.data ?? []),
+    it: it.error ? [] : (it.data ?? []),
+  };
+}
+
 export async function listComplianceStatus(clientId?: string) {
   const sb = createClient();
   let q = sb
