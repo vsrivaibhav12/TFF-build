@@ -24,11 +24,7 @@
     "status": "completed"
   },
   {
-    "content": "Verify with login + screenshot end-to-end before testing agent",
-    "status": "in_progress"
-  },
-  {
-    "content": "Run testing agent (single pass) for backend + frontend regression",
-    "status": "pending"
+    "content": "Single end-to-end test pass complete (zero critical/high; medium = interactive flows for user's revision pass)",
+    "status": "completed"
   }
 ]
