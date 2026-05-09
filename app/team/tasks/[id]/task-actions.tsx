@@ -7,7 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { transitionTaskAction, addTaskNoteAction, assignTaskAction } from '@/lib/actions/tasks';
-import { nextStatuses } from '@/lib/services/task-service';
+import { nextStatuses } from '@/lib/services/task-transitions';
 
 export default function TaskActions({ task, team }: { task: any; team: any[] }) {
   const router = useRouter();

@@ -2,22 +2,7 @@ import 'server-only';
 import { ServiceError } from '@/lib/actions/result';
 import type { TaskStatus } from '@/lib/validation/schemas';
 import { createClient } from '@/lib/supabase/server';
-
-const TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  pending: ['awaiting_client', 'in_progress'],
-  awaiting_client: ['in_progress'],
-  in_progress: ['review', 'awaiting_client'],
-  review: ['completed', 'in_progress'],
-  completed: [],
-};
-
-export function canTransition(from: TaskStatus, to: TaskStatus): boolean {
-  return TRANSITIONS[from]?.includes(to) ?? false;
-}
-
-export function nextStatuses(from: TaskStatus): TaskStatus[] {
-  return TRANSITIONS[from] ?? [];
-}
+import { canTransition } from '@/lib/services/task-transitions';
 
 export interface TransitionInput {
   taskId: string;
