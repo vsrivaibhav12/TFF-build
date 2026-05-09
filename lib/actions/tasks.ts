@@ -6,6 +6,7 @@ import { requireCapability } from '@/lib/auth/require-capability';
 import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { createTaskSchema, transitionTaskSchema, type CreateTaskInput, type TaskStatus } from '@/lib/validation/schemas';
 import { transitionTaskStatus, addTaskNote } from '@/lib/services/task-service';
+import { seedTaskStepsFromSop } from '@/lib/services/task-steps-service';
 
 export async function createTaskAction(input: CreateTaskInput): Promise<ActionResult<{ id: string }>> {
   try {
@@ -23,6 +24,14 @@ export async function createTaskAction(input: CreateTaskInput): Promise<ActionRe
       new_value: 'pending',
       changed_by: me.id,
     });
+    // If linked to a sub-service, copy its SOP steps onto the new task
+    if (parsed.data.sub_service_id) {
+      try {
+        await seedTaskStepsFromSop(sb as any, { task_id: data.id, sub_service_id: parsed.data.sub_service_id });
+      } catch {
+        // Non-fatal: task was created; SOP just didn't seed.
+      }
+    }
     revalidatePath('/team/tasks');
     revalidatePath('/portal/tasks');
     revalidatePath(`/team/clients/${parsed.data.client_id}`);

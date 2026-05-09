@@ -26,6 +26,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import NotificationsBell from './notifications-bell';
+import HeaderSearch from './header-search';
 import CommandPalette from './command-palette';
 import ShortcutsHelp from '@/components/sophistication/shortcuts-help';
 import ViewAsClientToggle from '@/components/sophistication/view-as-client-toggle';
@@ -173,8 +174,9 @@ export default function AppShell({
 
       {/* Main */}
       <main className="flex-1 min-w-0 px-6 md:px-8 py-8 md:py-12 pt-20 md:pt-12">
-        {/* Desktop top bar (notifications + utilities) */}
-        <div className="hidden md:flex items-center justify-end gap-2 mb-6">
+        {/* Desktop top bar (search + notifications + utilities) */}
+        <div className="hidden md:flex items-center justify-end gap-3 mb-6">
+          <HeaderSearch />
           <NotificationsBell />
         </div>
         <div className="mx-auto w-full max-w-7xl">{children}</div>

@@ -115,3 +115,54 @@ When in conflict:
 ### What Phase 0 and Phase 1 already shipped (do not rebuild)
 
 See `GO_FORWARD_PLAN.md` §Status today. Foundations, schema deployment with compatibility patches, additive RLS layer, demo seed, admin client/service/team CRUD, task engine with 5-state workflow, GST/TDS/IT compliance entry with versioning, queries thread, monthly task cron, due-alerts cron, mobile-responsive AppShell, and the design system primitives are all done. Build on top, do not start over.
+
+---
+
+## v3.2 amendment — May 8, 2026
+
+**Why v3.2:** v3.1 fixed architecture; v3.2 fixes UX. Earlier docs described structures (tables, layers, components) and let UI fall out of them — which produced a technically correct but daily-use-hostile product. v3.2 inverts: design the workflow first, the structures support it.
+
+### What's new in v3.2
+
+1. **`WORKFLOWS.md` is the new primary spec.** It describes how the people who use this product actually use it, screen by screen, with reference to Jamku / Practive / Turia patterns. Every task in `GO_FORWARD_PLAN.md` v2 references a workflow in this document.
+2. **`GO_FORWARD_PLAN.md` rewritten as v2.** Task-list, no day estimates. Grouped by area (Group A through Group I), each task tied to a workflow.
+3. **Service catalogue is now fully custom.** No hardcoded categories, services, or sub-services. The starter rows from `schema.sql` v3 are removed by `schema-additions.sql` v3.2 (Section 10). Admin builds the catalogue.
+4. **SOPs per sub-service.** New tables `sub_service_sop_steps` and `task_steps`. Admin defines a step list per sub-service; tasks copy the steps at creation; staff signs off step-by-step; reviewer approves the task only when all required steps are signed.
+5. **Staff role templates, no presets.** New tables `staff_role_templates` and `staff_role_template_capabilities`. Admin defines roles for the firm; applying a role bulk-grants its capabilities.
+6. **BizLens — full port.** No iframe. Native React for staff (full input + full output) and a curated read-only dashboard for clients. Logic ported into `lib/services/bizlens-service.ts`.
+7. **Bulk client import.** Excel and CSV, insert-only. New table `client_import_batches` for audit + re-run history.
+8. **Manual task creation surface.** "+ New task" button on tasks list and per-client. Creates a task with optional SOP-step inheritance from a chosen sub-service.
+9. **Service-applicability gating.** Data-entry surfaces hide unless the client has the relevant service subscribed. Decoupled from admin-chosen names via a new `service_kind` enum.
+10. **Saved views table fix.** v3.1 introduced `SavedViewsBar` and `saved-views.ts` action but the underlying table was missing. v3.2 adds `saved_views` (Section 5).
+
+### What stays from v3.1
+
+Everything: capability layer, portal visibility resolver, notification service, marketing-site integration contract, all existing RLS policies, the partial unique index on tasks. v3.2 builds on top — does not break what works.
+
+### Source of truth precedence (v3.2)
+
+When in conflict:
+
+1. `schema.sql` v3 + `schema-additions.sql` v3.2 (database)
+2. `WORKFLOWS.md` (the workflow spec — the primary UX truth)
+3. `NEXTJS_BACKEND_ARCHITECTURE.md` (with v3.1 amendment — capability layer, portal visibility resolver, notification service)
+4. `DESIGN_SYSTEM.md` (with Sophistication Layer + Workflow Primitives addenda)
+5. `DPDP_AND_SECURITY.md` (with v3.1 amendment)
+6. `GO_FORWARD_PLAN.md` v2 (active execution backlog)
+7. `BUILD_PLAN.md` (retained as historical reference for module shape)
+
+### What ships in this round
+
+The build that needs to happen:
+
+- All Group A simplification debt fixes (replace wizard with single form, search bar in header, manual task creation UI, EmptyState everywhere, SavedViewsBar wiring, BulkActionsBar wiring, view-as-client tagging, calendar-first team home, mobile bottom-tab nav).
+- All Group B custom service catalogue + SOP work (apply v3.2 cleanup, build catalogue admin UI, sub-service form with SOP-step editor, per-client service assignment screen, cron and manual-task SOP-copy).
+- All Group C task workflow with sign-off (step-by-step UI, ad-hoc steps, reviewer approval, send-reminder).
+- All Group D BizLens full port (calculation port, typed schemas, unit tests, native staff form, native staff output, native client dashboard, iframe deletion, data migration).
+- All Group E bulk client import.
+- All Group F custom roles + role-template application.
+- All Group G service-applicability gating.
+- All Group H DPDP audit + production readiness.
+- All Group I polish and audit-trail surfacing.
+
+See `GO_FORWARD_PLAN.md` v2 for the full task list.

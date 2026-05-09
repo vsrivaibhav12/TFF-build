@@ -1,17 +1,21 @@
 import { listAllNotices } from '@/lib/repositories/notices';
 import { listAccessibleClients } from '@/lib/repositories/clients';
+import { listSavedViews } from '@/lib/actions/saved-views';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import NoticeDialog from './notice-dialog';
+import EmptyState from '@/components/sophistication/empty-state';
+import SavedViewsBar from '@/components/sophistication/saved-views-bar';
+import { ScrollText } from 'lucide-react';
 import { formatDateIST, formatCurrencyINR } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeamNoticesPage() {
-  const [items, clients] = await Promise.all([listAllNotices(), listAccessibleClients()]);
+  const [items, clients, views] = await Promise.all([listAllNotices(), listAccessibleClients(), listSavedViews('team.notices')]);
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Notices</h1>
@@ -19,8 +23,13 @@ export default async function TeamNoticesPage() {
         </div>
         <NoticeDialog clients={clients as any}><Button data-testid="notice-new">New notice</Button></NoticeDialog>
       </div>
+      <SavedViewsBar scope="team.notices" views={views as any} />
       {items.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 p-8 bg-zinc-50 text-sm text-zinc-500">No notices logged. Add the first one to begin tracking deadlines.</div>
+        <EmptyState
+          title="No notices logged"
+          body="Add the first one to start tracking deadlines and hearings."
+          icon={<ScrollText className="h-6 w-6 text-zinc-400" />}
+        />
       ) : (
         <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
           <Table>

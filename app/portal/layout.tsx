@@ -1,6 +1,7 @@
 import { requireRole } from '@/lib/auth/require-role';
 import { getVisibleModulesForCurrentClient } from '@/lib/auth/portal-visibility';
 import AppShell, { type NavItem } from '@/components/shell/app-shell';
+import MobileBottomNav from '@/components/shell/mobile-bottom-nav';
 
 const FULL_NAV: Array<NavItem & { gate?: string }> = [
   { href: '/portal', label: 'Dashboard', icon: 'layout', gate: 'portal.dashboard' },
@@ -20,7 +21,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const nav = FULL_NAV.filter((n) => !n.gate || visible.has(n.gate as any)).map(({ gate, ...rest }) => rest);
   return (
     <AppShell user={user} role="client" nav={nav}>
-      {children}
+      <div className="pb-20 md:pb-0">{children}</div>
+      <MobileBottomNav />
     </AppShell>
   );
 }

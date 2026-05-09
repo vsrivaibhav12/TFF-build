@@ -1,30 +1,38 @@
 [
   {
-    "content": "Phase A complete (foundations, capabilities, portal visibility, onboarding wizard, notifications)",
+    "content": "GROUP A complete (single-form, search, +new task, EmptyState, SavedViews, BulkActions, admin-only tags, calendar-first, mobile bottom-nav)",
     "status": "completed"
   },
   {
-    "content": "Phase B complete (DSC vault, Credentials vault, Documents, Notices, Hearings, Attendance, Leave, Payroll)",
+    "content": "G-B.1 Confirm catalogue cleared (already in v3.2 migration)",
     "status": "completed"
   },
   {
-    "content": "Phase C complete (Compliance calendar, Tax projection, BizLens shell+bridge, vCFO, Insight Engine)",
-    "status": "completed"
+    "content": "G-B.2 /admin/services rebuild: list services + sub-services with empty-first state",
+    "status": "in_progress"
   },
   {
-    "content": "Phase D complete (Notification digest cron, Insight cron, Admin firm dashboard, Audit UI)",
-    "status": "completed"
+    "content": "G-B.3 Service create/edit dialog (name + code + category + description + is_active)",
+    "status": "pending"
   },
   {
-    "content": "Phase E complete (cmd-K palette, saved views, bulk actions, view-as-client, version diff, empty state, shortcuts)",
-    "status": "completed"
+    "content": "G-B.4 Sub-service create/edit dialog (name, code, frequency, monthly?, requires_client_input)",
+    "status": "pending"
   },
   {
-    "content": "Phase F complete (legal docs, DPDP audit plan, production hardening checklist, launch run-book)",
-    "status": "completed"
+    "content": "G-B.5 SOP step CRUD per sub-service (sub_service_sop_steps table, with order)",
+    "status": "pending"
   },
   {
-    "content": "Single end-to-end test pass complete (zero critical/high; medium = interactive flows for user's revision pass)",
-    "status": "completed"
+    "content": "G-B.6 Per-client service assignment UI (replace existing assign UI with cleaner one)",
+    "status": "pending"
+  },
+  {
+    "content": "G-B.7 Cron generate-monthly-tasks copies SOP steps as task_steps when generating tasks",
+    "status": "pending"
+  },
+  {
+    "content": "G-B.8 Manual task creation copies SOP steps from sub_service_sop_steps",
+    "status": "pending"
   }
 ]

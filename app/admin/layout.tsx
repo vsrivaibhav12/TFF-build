@@ -19,7 +19,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/audit', label: 'Audit', icon: 'scroll' },
       ]}
     >
-      {children}
+      {/* Tag the entire admin tree as admin-only so View-as-client toggle dims it */}
+      <div data-admin-only>{children}</div>
     </AppShell>
   );
 }

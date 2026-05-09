@@ -38,12 +38,12 @@ export type TaskStatus = z.infer<typeof taskStatusEnum>;
 
 export const createTaskSchema = z.object({
   client_id: z.string().uuid(),
-  sub_service_id: z.string().uuid(),
+  sub_service_id: z.string().uuid().optional().nullable(),
   title: z.string().min(2).max(200),
   description: z.string().max(2000).optional().nullable(),
   assigned_to: z.string().uuid().optional().nullable(),
   reviewer_id: z.string().uuid().optional().nullable(),
-  due_date: z.string().date(),
+  due_date: z.string().date().optional().nullable(),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
   period_year: z.number().int().min(2000).max(2100).optional().nullable(),
   period_month: z.number().int().min(1).max(12).optional().nullable(),

@@ -1,34 +1,40 @@
 import Link from 'next/link';
 import { listAccessibleClients } from '@/lib/repositories/clients';
+import { listSavedViews } from '@/lib/actions/saved-views';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateIST } from '@/lib/utils';
 import { Plus, Building2 } from 'lucide-react';
+import EmptyState from '@/components/sophistication/empty-state';
+import SavedViewsBar from '@/components/sophistication/saved-views-bar';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminClientsList() {
-  const clients = await listAccessibleClients();
+  const [clients, views] = await Promise.all([listAccessibleClients(), listSavedViews('admin.clients')]);
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-zinc-500 mt-1">Manage your firm’s client roster.</p>
+          <p className="text-zinc-500 mt-1">Your firm&apos;s client roster.</p>
         </div>
         <Button asChild data-testid="new-client-btn">
           <Link href="/admin/clients/new"><Plus className="h-4 w-4" /> New client</Link>
         </Button>
       </div>
 
+      <SavedViewsBar scope="admin.clients" views={views as any} />
+
       {clients.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 p-12 text-center bg-zinc-50">
-          <Building2 className="h-8 w-8 mx-auto text-zinc-400" />
-          <div className="mt-3 font-medium text-zinc-900">No clients yet</div>
-          <div className="text-sm text-zinc-500 mt-1">Add your first client to get started.</div>
-          <Button asChild className="mt-4"><Link href="/admin/clients/new">Create client</Link></Button>
-        </div>
+        <EmptyState
+          title="No clients yet"
+          body="Onboard your first client and start tracking compliance, tasks, and queries in one place."
+          actionHref="/admin/clients/new"
+          actionLabel="Create client"
+          icon={<Building2 className="h-6 w-6 text-zinc-400" />}
+        />
       ) : (
         <div className="rounded-xl border border-zinc-200 bg-white">
           <Table>

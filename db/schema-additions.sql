@@ -179,7 +179,283 @@ CREATE POLICY "notif_prefs_admin" ON notification_preferences
 -- c) client_portal_visibility updates write a row to global_audit_log with
 --    action='portal_visibility.set', entity_type='client', entity_id=client_id,
 --    details JSONB containing { module_key, is_enabled, by }.
---
+
 -- ============================================================================
--- DONE
+-- v3.2 ADDITIONS — May 8, 2026
+-- ============================================================================
+--
+-- Reflects the workflow rewrite. Five new tables and one cleanup migration.
+--
+--   5. saved_views                 — fixes the missing table the
+--                                    saved-views action references
+--   6. sub_service_sop_steps       — admin-defined SOP per sub-service
+--   7. task_steps                  — per-task copy of SOP steps with sign-off
+--   8. staff_role_templates        — firm-defined role templates
+--   9. staff_role_capabilities     — capabilities granted by a role template
+--  10. client_import_batches       — bulk-import staging (audit + retry)
+--  11. CLEANUP                     — DROP starter-set service catalogue rows
+--                                    so admin defines services from scratch
+--
+-- Apply order: schema.sql → rls-additive.sql → schema-additions.sql (this file).
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 5. SAVED VIEWS (fix for missing table)
+-- ----------------------------------------------------------------------------
+-- Per-user, per-scope filter presets. Scope examples: 'tasks', 'clients',
+-- 'queries', 'notices'. The filters JSON captures URL search params.
+
+CREATE TABLE IF NOT EXISTS saved_views (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users_profile(id) ON DELETE CASCADE,
+  scope TEXT NOT NULL,
+  name TEXT NOT NULL,
+  filters JSONB NOT NULL DEFAULT '{}',
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+
+  UNIQUE(user_id, scope, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_views_user_scope
+  ON saved_views(user_id, scope);
+
+ALTER TABLE saved_views ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "saved_views_self" ON saved_views;
+CREATE POLICY "saved_views_self" ON saved_views
+  FOR ALL TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- ----------------------------------------------------------------------------
+-- 6. SUB-SERVICE SOP STEPS (custom workflow per sub-service)
+-- ----------------------------------------------------------------------------
+-- Admin defines the standard operating procedure per sub-service: an ordered
+-- list of steps. When a task is created (manually or via the recurring cron)
+-- from this sub-service, these steps are COPIED into task_steps for that task.
+-- Editing the SOP affects future tasks only; existing tasks keep their copy.
+
+CREATE TABLE IF NOT EXISTS sub_service_sop_steps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sub_service_id UUID NOT NULL REFERENCES sub_services(id) ON DELETE CASCADE,
+  step_order INT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  is_required BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  is_deleted BOOLEAN DEFAULT FALSE,
+
+  UNIQUE(sub_service_id, step_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sop_steps_sub_service
+  ON sub_service_sop_steps(sub_service_id) WHERE is_deleted = FALSE;
+
+ALTER TABLE sub_service_sop_steps ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "sop_admin" ON sub_service_sop_steps;
+CREATE POLICY "sop_admin" ON sub_service_sop_steps
+  FOR ALL TO authenticated
+  USING (public.current_user_role() = 'admin')
+  WITH CHECK (public.current_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "sop_team_read" ON sub_service_sop_steps;
+CREATE POLICY "sop_team_read" ON sub_service_sop_steps
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('team', 'admin'));
+
+-- ----------------------------------------------------------------------------
+-- 7. TASK STEPS (per-task checklist with sign-off)
+-- ----------------------------------------------------------------------------
+-- Each task has its own ordered step list, copied from the sub-service's SOP
+-- at task-creation time (or added ad-hoc by staff during execution). Each step
+-- captures sign-off: who completed it, when, and an optional note.
+
+CREATE TABLE IF NOT EXISTS task_steps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  step_order INT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  is_required BOOLEAN DEFAULT TRUE,
+
+  -- Sign-off
+  completed_at TIMESTAMP,
+  completed_by UUID REFERENCES users_profile(id),
+  completion_note TEXT,
+
+  -- Provenance: which SOP step seeded this row (NULL for ad-hoc steps)
+  source_sop_step_id UUID REFERENCES sub_service_sop_steps(id),
+
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+
+  UNIQUE(task_id, step_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_steps_task ON task_steps(task_id);
+CREATE INDEX IF NOT EXISTS idx_task_steps_completed_by
+  ON task_steps(completed_by) WHERE completed_at IS NOT NULL;
+
+ALTER TABLE task_steps ENABLE ROW LEVEL SECURITY;
+
+-- Admin: full
+DROP POLICY IF EXISTS "task_steps_admin" ON task_steps;
+CREATE POLICY "task_steps_admin" ON task_steps
+  FOR ALL TO authenticated
+  USING (public.current_user_role() = 'admin')
+  WITH CHECK (public.current_user_role() = 'admin');
+
+-- Team: visible/insert/update if assigned to the parent task's client
+DROP POLICY IF EXISTS "task_steps_team" ON task_steps;
+CREATE POLICY "task_steps_team" ON task_steps
+  FOR ALL TO authenticated
+  USING (
+    public.current_user_role() = 'team'
+    AND task_id IN (
+      SELECT id FROM tasks WHERE client_id IN (
+        SELECT client_id FROM team_client_assignment WHERE team_user_id = auth.uid()
+      )
+    )
+  );
+
+-- Client: read-only access to steps of tasks the client can see
+DROP POLICY IF EXISTS "task_steps_client_read" ON task_steps;
+CREATE POLICY "task_steps_client_read" ON task_steps
+  FOR SELECT TO authenticated
+  USING (
+    task_id IN (
+      SELECT id FROM tasks WHERE client_id IN (
+        SELECT client_id FROM client_users
+        WHERE user_id = auth.uid() AND is_active = TRUE
+      )
+      AND status IN ('awaiting_client', 'completed')
+    )
+  );
+
+-- ----------------------------------------------------------------------------
+-- 8. STAFF ROLE TEMPLATES (firm-defined roles, no presets)
+-- ----------------------------------------------------------------------------
+-- Each firm defines its own role templates ("Senior Tax Associate", "Articleship",
+-- whatever). Applying a role template to a staff member bulk-grants its
+-- capabilities into staff_capabilities. Changing the role replaces the set;
+-- individual overrides are tracked separately on staff_capabilities.
+
+CREATE TABLE IF NOT EXISTS staff_role_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  created_by UUID REFERENCES users_profile(id),
+  is_deleted BOOLEAN DEFAULT FALSE
+);
+
+ALTER TABLE staff_role_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "role_templates_admin" ON staff_role_templates;
+CREATE POLICY "role_templates_admin" ON staff_role_templates
+  FOR ALL TO authenticated
+  USING (public.current_user_role() = 'admin')
+  WITH CHECK (public.current_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "role_templates_team_read" ON staff_role_templates;
+CREATE POLICY "role_templates_team_read" ON staff_role_templates
+  FOR SELECT TO authenticated
+  USING (public.current_user_role() IN ('admin', 'team'));
+
+CREATE TABLE IF NOT EXISTS staff_role_template_capabilities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  template_id UUID NOT NULL REFERENCES staff_role_templates(id) ON DELETE CASCADE,
+  capability TEXT NOT NULL,
+
+  UNIQUE(template_id, capability)
+);
+
+CREATE INDEX IF NOT EXISTS idx_role_template_caps_template
+  ON staff_role_template_capabilities(template_id);
+
+ALTER TABLE staff_role_template_capabilities ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "role_template_caps_admin" ON staff_role_template_capabilities;
+CREATE POLICY "role_template_caps_admin" ON staff_role_template_capabilities
+  FOR ALL TO authenticated
+  USING (public.current_user_role() = 'admin')
+  WITH CHECK (public.current_user_role() = 'admin');
+
+-- Track which template (if any) is currently applied to a staff member.
+-- Optional pointer; staff_capabilities remains the source of truth for what
+-- capabilities the user actually holds (incl. overrides).
+ALTER TABLE users_profile
+  ADD COLUMN IF NOT EXISTS active_role_template_id UUID REFERENCES staff_role_templates(id);
+
+-- ----------------------------------------------------------------------------
+-- 9. CLIENT IMPORT BATCHES (bulk import audit trail)
+-- ----------------------------------------------------------------------------
+-- One row per upload. Captures the file name, row counts, and any errors so
+-- admin can audit a bulk import and re-run if needed.
+
+CREATE TABLE IF NOT EXISTS client_import_batches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  uploaded_by UUID NOT NULL REFERENCES users_profile(id),
+  uploaded_at TIMESTAMP DEFAULT NOW(),
+
+  source_filename TEXT,
+  total_rows INT NOT NULL,
+  successful_rows INT NOT NULL DEFAULT 0,
+  skipped_rows INT NOT NULL DEFAULT 0,
+  error_rows INT NOT NULL DEFAULT 0,
+
+  errors JSONB DEFAULT '[]',  -- array of { row_index, business_name, error }
+
+  status TEXT NOT NULL DEFAULT 'completed'
+    CHECK (status IN ('processing', 'completed', 'failed'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_client_import_batches_uploaded_by
+  ON client_import_batches(uploaded_by);
+
+ALTER TABLE client_import_batches ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "import_batches_admin" ON client_import_batches;
+CREATE POLICY "import_batches_admin" ON client_import_batches
+  FOR ALL TO authenticated
+  USING (public.current_user_role() = 'admin')
+  WITH CHECK (public.current_user_role() = 'admin');
+
+-- ----------------------------------------------------------------------------
+-- 10. STARTER-SET CATALOGUE CLEANUP (run once, idempotent)
+-- ----------------------------------------------------------------------------
+-- The original schema.sql v3 inserted starter rows into service_categories,
+-- services, and sub_services so the system was usable on first boot. The user
+-- has confirmed they want a CLEAN SLATE: services and sub-services are
+-- exclusively admin-defined.
+--
+-- This DELETE is idempotent — runs only against rows that match the original
+-- starter-set and are NOT yet referenced by any client_services /
+-- client_sub_services / tasks (so a later run after admin has already
+-- referenced these rows will leave them alone).
+--
+-- IMPORTANT: Run this AFTER the admin has had a chance to delete starter rows
+-- via the admin UI, or run it BEFORE any client gets services assigned.
+
+DELETE FROM sub_services WHERE code IN (
+  'GST_3B','GST_1','GST_9','TDS_Q','ITR','BL_MONTHLY','BL_QUARTERLY',
+  'VCFO_CALL','VCFO_NOTE','CBAM_Q','SOX_ASSESS'
+)
+AND id NOT IN (SELECT sub_service_id FROM client_sub_services)
+AND id NOT IN (SELECT sub_service_id FROM tasks WHERE sub_service_id IS NOT NULL);
+
+DELETE FROM services WHERE code IN ('CAAS','BIZLENS','VCFO','CBAM','SOX')
+AND id NOT IN (SELECT service_id FROM client_services)
+AND id NOT IN (SELECT service_id FROM sub_services);
+
+DELETE FROM service_categories WHERE name IN ('Compliance','Analytics','Advisory','Specialty')
+AND id NOT IN (SELECT category_id FROM services);
+
+-- ============================================================================
+-- DONE — v3.2
 -- ============================================================================

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service-role';
+import { seedTaskStepsFromSop } from '@/lib/services/task-steps-service';
 
 /**
  * Vercel Cron: Generate monthly tasks from sub_services with frequency='monthly'.
@@ -64,19 +65,25 @@ export async function GET(request: NextRequest) {
       continue;
     }
 
-    const { error: insErr } = await sb.from('tasks').insert({
+    const { data: created_row, error: insErr } = await sb.from('tasks').insert({
       client_id: l.client_id,
       sub_service_id: l.sub_service_id,
-      title: `${ss.name} – ${periodMonth}/${periodYear}`,
+      title: `${ss.name} \u2014 ${periodMonth}/${periodYear}`,
       status: 'pending',
       priority: 'medium',
       due_date: dueDateStr,
       period_month: periodMonth,
       period_year: periodYear,
       is_recurring: true,
-    });
-    if (insErr) errors.push(insErr.message);
-    else created++;
+    }).select('id').single();
+    if (insErr) { errors.push(insErr.message); continue; }
+    created++;
+    // Copy SOP steps onto the new task
+    try {
+      await seedTaskStepsFromSop(sb, { task_id: (created_row as any).id, sub_service_id: l.sub_service_id });
+    } catch (e: any) {
+      errors.push(`SOP copy failed for task ${(created_row as any).id}: ${e?.message ?? 'unknown'}`);
+    }
   }
 
   return NextResponse.json({ ok: true, periodMonth, periodYear, created, skipped, errors });

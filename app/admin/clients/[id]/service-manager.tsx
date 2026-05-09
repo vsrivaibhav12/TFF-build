@@ -81,7 +81,12 @@ export default function ClientServiceManager({ clientId, existingSubServices, ex
       </div>
 
       {existingSubServices.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 p-8 text-center text-sm text-zinc-500 bg-zinc-50">No sub-services yet. Add one to start auto-generating monthly tasks.</div>
+        <div className="rounded-xl border-2 border-dashed border-zinc-200 p-8 text-center bg-zinc-50/50">
+          <div className="text-sm font-medium text-zinc-900">No sub-services subscribed yet</div>
+          <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+            Add a sub-service to start auto-generating monthly tasks for this client. Tasks include the SOP checklist defined in the catalogue.
+          </p>
+        </div>
       ) : (
         <div className="rounded-xl border border-zinc-200 divide-y divide-zinc-200">
           {existingSubServices.map((s: any) => (

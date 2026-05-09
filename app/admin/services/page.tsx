@@ -1,5 +1,11 @@
 import { listServiceCategories, listServices, listSubServices } from '@/lib/repositories/services';
-import { Badge } from '@/components/ui/badge';
+import { listSopSteps } from '@/lib/repositories/sop';
+import { Button } from '@/components/ui/button';
+import ServiceDialog from './service-dialog';
+import SubServiceDialog from './sub-service-dialog';
+import SubServicePanel from './sub-service-panel';
+import EmptyState from '@/components/sophistication/empty-state';
+import { Layers } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,49 +16,81 @@ export default async function AdminServicesPage() {
     listSubServices(),
   ]);
 
+  // Pre-fetch SOP steps for every sub-service so the panel renders synchronously
+  const sopByService: Record<string, any[]> = {};
+  for (const ss of subServices as any[]) {
+    sopByService[ss.id] = await listSopSteps(ss.id);
+  }
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Services catalogue</h1>
-        <p className="text-zinc-500 mt-1">{categories.length} categories · {services.length} services · {subServices.length} sub-services. Catalogue is firm-wide; assign to clients on the client detail page.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Services catalogue</h1>
+          <p className="text-zinc-500 mt-1">Define what your firm offers. Each sub-service can have an SOP — a checklist that’s copied into every task.</p>
+        </div>
+        <ServiceDialog categories={categories as any}>
+          <Button data-testid="new-service">New service</Button>
+        </ServiceDialog>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {categories.map((c: any) => {
-          const catServices = services.filter((s: any) => s.category_id === c.id);
-          return (
-            <div key={c.id} className="rounded-xl border border-zinc-200 p-6 bg-white">
-              <div className="flex items-baseline justify-between">
-                <h3 className="font-semibold text-zinc-900">{c.name}</h3>
-                <span className="text-xs text-zinc-500">order {c.display_order}</span>
-              </div>
-              <p className="text-sm text-zinc-500 mt-1">{c.description}</p>
-              <div className="mt-4 space-y-3">
-                {catServices.map((s: any) => {
-                  const subs = subServices.filter((ss: any) => ss.service_id === s.id);
-                  return (
-                    <div key={s.id} className="rounded-lg border border-zinc-200 p-3 bg-zinc-50">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-sm text-zinc-900">{s.name} <span className="font-mono text-xs text-zinc-500">{s.code}</span></div>
-                        <Badge variant="outline">{subs.length} sub</Badge>
+
+      {services.length === 0 ? (
+        <EmptyState
+          title="No services defined yet"
+          body="Start by creating a service (e.g. ‘GST Compliance’). Then add sub-services like ‘GSTR-3B’ inside it."
+          icon={<Layers className="h-6 w-6 text-zinc-400" />}
+        />
+      ) : (
+        <div className="space-y-6">
+          {(categories as any[]).map((cat) => {
+            const catServices = (services as any[]).filter((s) => s.category_id === cat.id);
+            if (catServices.length === 0) return null;
+            return (
+              <section key={cat.id} className="space-y-3">
+                <h2 className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">{cat.name}</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {catServices.map((s: any) => {
+                    const subs = (subServices as any[]).filter((ss) => ss.service_id === s.id);
+                    return (
+                      <div key={s.id} className="rounded-xl border border-zinc-200 bg-white p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="font-semibold text-zinc-900">{s.name}</div>
+                            <div className="font-mono text-xs text-zinc-500 mt-0.5">{s.code}</div>
+                            {s.description && <div className="text-xs text-zinc-500 mt-1">{s.description}</div>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <ServiceDialog categories={categories as any} initial={s}>
+                              <button className="text-xs text-teal-700 hover:underline">Edit</button>
+                            </ServiceDialog>
+                            <SubServiceDialog serviceId={s.id} serviceName={s.name}>
+                              <button className="text-xs text-teal-700 hover:underline" data-testid={`add-sub-${s.code}`}>+ Sub-service</button>
+                            </SubServiceDialog>
+                          </div>
+                        </div>
+                        {subs.length === 0 ? (
+                          <div className="mt-4 text-xs text-zinc-400 italic">No sub-services yet.</div>
+                        ) : (
+                          <ul className="mt-4 space-y-2">
+                            {subs.map((ss: any) => (
+                              <li key={ss.id}>
+                                <SubServicePanel
+                                  subService={ss}
+                                  sopSteps={sopByService[ss.id] ?? []}
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                      {subs.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {subs.map((ss: any) => (
-                            <li key={ss.id} className="text-xs flex items-center justify-between">
-                              <span className="text-zinc-700">{ss.name}</span>
-                              <Badge variant="teal">{ss.frequency}</Badge>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
