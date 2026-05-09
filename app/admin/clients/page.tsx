@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateIST } from '@/lib/utils';
-import { Plus, Building2 } from 'lucide-react';
+import { Plus, Building2, Upload } from 'lucide-react';
 import EmptyState from '@/components/sophistication/empty-state';
 import SavedViewsBar from '@/components/sophistication/saved-views-bar';
 
@@ -20,9 +20,14 @@ export default async function AdminClientsList() {
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-zinc-500 mt-1">Your firm&apos;s client roster.</p>
         </div>
-        <Button asChild data-testid="new-client-btn">
-          <Link href="/admin/clients/new"><Plus className="h-4 w-4" /> New client</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild data-testid="bulk-import-btn">
+            <Link href="/admin/clients/import"><Upload className="h-4 w-4" /> Bulk import</Link>
+          </Button>
+          <Button asChild data-testid="new-client-btn">
+            <Link href="/admin/clients/new"><Plus className="h-4 w-4" /> New client</Link>
+          </Button>
+        </div>
       </div>
 
       <SavedViewsBar scope="admin.clients" views={views as any} />

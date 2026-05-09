@@ -2,7 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/require-role';
-import { ALL_CAPABILITIES, type Capability, requireCapability } from '@/lib/auth/require-capability';
+import { ALL_CAPABILITIES, type Capability } from '@/lib/auth/capabilities';
+import { requireCapability } from '@/lib/auth/require-capability';
 import { writeAudit } from '@/lib/services/audit-service';
 import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { notify } from '@/lib/services/notification-service';

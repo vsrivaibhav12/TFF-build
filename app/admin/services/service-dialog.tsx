@@ -19,12 +19,13 @@ export default function ServiceDialog({ categories, initial, children }: { categ
     name: initial?.name ?? '',
     code: initial?.code ?? '',
     description: initial?.description ?? '',
+    service_kind: initial?.service_kind ?? '',
   });
   function set<K extends keyof typeof f>(k: K, v: any) { setF((p) => ({ ...p, [k]: v })); }
   function save() {
     if (!f.name || !f.code || !f.category_id) { toast.error('Name, code and category are required'); return; }
     startTransition(async () => {
-      const r = await upsertServiceAction(f as any);
+      const r = await upsertServiceAction({ ...f, service_kind: (f.service_kind || null) as any });
       if (r.success) { toast.success('Saved'); setOpen(false); }
       else toast.error(r.error);
     });
@@ -51,6 +52,24 @@ export default function ServiceDialog({ categories, initial, children }: { categ
           <div className="space-y-2"><Label>Name *</Label><Input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="GST Compliance" data-testid="svc-name" /></div>
           <div className="space-y-2"><Label>Code *</Label><Input value={f.code} onChange={(e) => set('code', e.target.value.toUpperCase())} placeholder="GST_COMPLIANCE" data-testid="svc-code" /><p className="text-xs text-zinc-500">Uppercase letters, digits and underscore only.</p></div>
           <div className="space-y-2"><Label>Description</Label><Textarea rows={2} value={f.description} onChange={(e) => set('description', e.target.value)} /></div>
+          <div className="space-y-2"><Label>Service kind</Label>
+            <Select value={f.service_kind || 'unset'} onValueChange={(v) => set('service_kind', v === 'unset' ? '' : v)}>
+              <SelectTrigger data-testid="svc-kind"><SelectValue placeholder="Not set" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unset">Not set (no module gating)</SelectItem>
+                <SelectItem value="gst">GST</SelectItem>
+                <SelectItem value="tds">TDS</SelectItem>
+                <SelectItem value="income_tax">Income Tax</SelectItem>
+                <SelectItem value="compliance">Compliance (general)</SelectItem>
+                <SelectItem value="bizlens">BizLens (analytics)</SelectItem>
+                <SelectItem value="vcfo">vCFO (advisory)</SelectItem>
+                <SelectItem value="notice">Notice handling</SelectItem>
+                <SelectItem value="payroll">Payroll</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-zinc-500">Used to show/hide data-entry modules per client. Leave blank to disable gating for this service.</p>
+          </div>
         </div>
         <DialogFooter className="gap-2">
           {initial && <Button variant="outline" onClick={remove} disabled={pending}><Trash2 className="h-4 w-4" /> Delete</Button>}

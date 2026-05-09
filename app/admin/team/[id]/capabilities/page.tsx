@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { ALL_CAPABILITIES } from '@/lib/auth/require-capability';
+import { ALL_CAPABILITIES } from '@/lib/auth/capabilities';
 import { listGrantedCapabilities } from '@/lib/repositories/staff-capabilities';
 import CapabilitiesForm from './capabilities-form';
 import { ChevronLeft } from 'lucide-react';

@@ -1,38 +1,42 @@
 [
   {
-    "content": "GROUP A complete (single-form, search, +new task, EmptyState, SavedViews, BulkActions, admin-only tags, calendar-first, mobile bottom-nav)",
+    "content": "Group C: Task workflow with sign-off",
     "status": "completed"
   },
   {
-    "content": "G-B.1 Confirm catalogue cleared (already in v3.2 migration)",
+    "content": "Group E: Bulk client import (CSV + Excel) with audit batches",
     "status": "completed"
   },
   {
-    "content": "G-B.2 /admin/services rebuild: list services + sub-services with empty-first state",
+    "content": "Group F: Custom staff role templates with bulk capability application",
+    "status": "completed"
+  },
+  {
+    "content": "Group G: Service-applicability gating (service_kind enum + UI hide)",
+    "status": "completed"
+  },
+  {
+    "content": "Batch test #1 — testing_agent for C+E+F+G",
     "status": "in_progress"
   },
   {
-    "content": "G-B.3 Service create/edit dialog (name + code + category + description + is_active)",
+    "content": "Group D: BizLens native port (logic + types + UI + tests + iframe deletion)",
     "status": "pending"
   },
   {
-    "content": "G-B.4 Sub-service create/edit dialog (name, code, frequency, monthly?, requires_client_input)",
+    "content": "Test BizLens native",
     "status": "pending"
   },
   {
-    "content": "G-B.5 SOP step CRUD per sub-service (sub_service_sop_steps table, with order)",
+    "content": "Group H: DPDP audit + production readiness",
     "status": "pending"
   },
   {
-    "content": "G-B.6 Per-client service assignment UI (replace existing assign UI with cleaner one)",
+    "content": "Group I: Polish + audit-trail surfacing",
     "status": "pending"
   },
   {
-    "content": "G-B.7 Cron generate-monthly-tasks copies SOP steps as task_steps when generating tasks",
-    "status": "pending"
-  },
-  {
-    "content": "G-B.8 Manual task creation copies SOP steps from sub_service_sop_steps",
+    "content": "Final batch test",
     "status": "pending"
   }
 ]

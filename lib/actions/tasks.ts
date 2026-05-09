@@ -7,6 +7,7 @@ import { ok, fail, type ActionResult } from '@/lib/actions/result';
 import { createTaskSchema, transitionTaskSchema, type CreateTaskInput, type TaskStatus } from '@/lib/validation/schemas';
 import { transitionTaskStatus, addTaskNote } from '@/lib/services/task-service';
 import { seedTaskStepsFromSop } from '@/lib/services/task-steps-service';
+import { notify } from '@/lib/services/notification-service';
 
 export async function createTaskAction(input: CreateTaskInput): Promise<ActionResult<{ id: string }>> {
   try {
@@ -97,3 +98,80 @@ export async function assignTaskAction(input: { task_id: string; assigned_to?: s
     return fail(e?.message ?? 'unknown', e?.code ?? 'UNKNOWN');
   }
 }
+
+/**
+ * Send a reminder to all client portal users linked to the task's client.
+ * Allowed only when task is in 'awaiting_client'. Writes an in-app notification
+ * (and an email if the user has 'immediate' preference), plus a task_activity row.
+ * Throttled to one reminder per 6 hours per task to avoid spam.
+ */
+export async function sendTaskReminderAction(input: { task_id: string; message?: string }): Promise<ActionResult<{ recipients: number }>> {
+  try {
+    const me = await requireRole(['admin', 'team']);
+    if (!input.task_id) return fail('task_id is required', 'VALIDATION');
+    const sb = createClient();
+    const { data: task, error: tErr } = await sb
+      .from('tasks')
+      .select('id, title, status, client_id, due_date, clients(business_name)')
+      .eq('id', input.task_id)
+      .maybeSingle();
+    if (tErr) return fail(tErr.message, 'DB');
+    if (!task) return fail('Task not found', 'NOT_FOUND');
+    if ((task as any).status !== 'awaiting_client') {
+      return fail('Reminders can only be sent for tasks awaiting the client', 'INVALID_STATE');
+    }
+
+    // Throttle: refuse if a reminder activity exists within the last 6h
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: recent } = await sb
+      .from('task_activity')
+      .select('id, created_at')
+      .eq('task_id', input.task_id)
+      .eq('action', 'reminder_sent')
+      .gte('created_at', sixHoursAgo)
+      .limit(1);
+    if (recent && recent.length > 0) {
+      return fail('A reminder was already sent in the last 6 hours', 'THROTTLED');
+    }
+
+    // Find client portal users for this client
+    const { data: clientUsers } = await sb
+      .from('client_users')
+      .select('user_id')
+      .eq('client_id', (task as any).client_id)
+      .eq('is_active', true);
+
+    const userIds = (clientUsers ?? []).map((u: any) => u.user_id).filter(Boolean);
+    const subject = `Reminder: ${(task as any).title}`;
+    const body = input.message?.trim()
+      || `We're waiting on inputs for "${(task as any).title}". Please respond at your earliest convenience.`;
+
+    for (const uid of userIds) {
+      await notify({
+        user_id: uid,
+        type: 'task_due_soon',
+        title: subject,
+        message: body,
+        related_entity_type: 'task',
+        related_entity_id: input.task_id,
+        immediate: true,
+      });
+    }
+
+    // Audit / activity entry
+    await sb.from('task_activity').insert({
+      task_id: input.task_id,
+      action: 'reminder_sent',
+      field_name: 'reminder',
+      new_value: `${userIds.length} recipient${userIds.length === 1 ? '' : 's'}`,
+      changed_by: me.id,
+    });
+
+    revalidatePath(`/team/tasks/${input.task_id}`);
+    revalidatePath('/team/tasks');
+    return ok({ recipients: userIds.length });
+  } catch (e: any) {
+    return fail(e?.message ?? 'unknown', e?.code ?? 'UNKNOWN');
+  }
+}
+

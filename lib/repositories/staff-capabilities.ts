@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { Capability } from '@/lib/auth/require-capability';
+import type { Capability } from '@/lib/auth/capabilities';
 
 export async function listGrantedCapabilities(userId: string): Promise<Capability[]> {
   const sb = createClient();

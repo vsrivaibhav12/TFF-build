@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getClientById } from '@/lib/repositories/clients';
 import { listVcfoSnapshots, listSolutionLog } from '@/lib/repositories/vcfo';
+import { clientHasServiceKind } from '@/lib/auth/service-applicability';
 import VcfoForm from './vcfo-form';
 import SolutionForm from './solution-form';
+import ServiceLocked from '@/components/shell/service-locked';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrencyINR, formatDateIST } from '@/lib/utils';
 import { ChevronLeft } from 'lucide-react';
@@ -13,6 +15,25 @@ export const dynamic = 'force-dynamic';
 export default async function VcfoPage({ params }: { params: { id: string } }) {
   const client = await getClientById(params.id);
   if (!client) notFound();
+  const allowed = await clientHasServiceKind(params.id, 'vcfo');
+  if (!allowed) {
+    return (
+      <div className="space-y-6">
+        <Link
+          href={`/team/clients/${params.id}`}
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900"
+        >
+          <ChevronLeft className="h-4 w-4" /> Back to {(client as any).business_name}
+        </Link>
+        <ServiceLocked
+          kind="vcfo"
+          clientId={params.id}
+          clientName={(client as any).business_name}
+          moduleLabel="vCFO advisory"
+        />
+      </div>
+    );
+  }
   const [snapshots, solutions] = await Promise.all([listVcfoSnapshots(params.id), listSolutionLog(params.id)]);
   const latest: any = snapshots[0];
   const runwayMonths = latest?.cash_in_bank && latest?.monthly_burn ? Math.round((latest.cash_in_bank / latest.monthly_burn) * 10) / 10 : null;

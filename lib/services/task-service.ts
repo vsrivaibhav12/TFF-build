@@ -45,6 +45,25 @@ export async function transitionTaskStatus(input: TransitionInput) {
     throw new ServiceError('Cannot complete: reviewer must be set first', 'NO_REVIEWER');
   }
 
+  // Sign-off gate: when sending to review or completing, all REQUIRED checklist
+  // steps must be signed off. This enforces the SOP at the service layer (not
+  // only in the UI). Tasks without any steps are allowed to pass through.
+  if (input.toStatus === 'review' || input.toStatus === 'completed') {
+    const { data: stepRows, error: stepErr } = await sb
+      .from('task_steps')
+      .select('id, is_required, completed_at')
+      .eq('task_id', input.taskId);
+    if (stepErr) throw stepErr;
+    const required = (stepRows ?? []).filter((r: any) => r.is_required);
+    const incomplete = required.filter((r: any) => !r.completed_at).length;
+    if (required.length > 0 && incomplete > 0) {
+      throw new ServiceError(
+        `Cannot move to ${input.toStatus}: ${incomplete} required checklist step${incomplete > 1 ? 's' : ''} still pending sign-off`,
+        'STEPS_INCOMPLETE',
+      );
+    }
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const updates: Record<string, any> = { status: input.toStatus, updated_at: new Date().toISOString() };
   if (input.toStatus === 'in_progress' && !task.started_date) updates.started_date = today;
