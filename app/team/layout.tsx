@@ -8,18 +8,20 @@ export default async function TeamLayout({ children }: { children: React.ReactNo
       user={user}
       role="team"
       nav={[
-        { href: '/team', label: 'Workspace', icon: 'dashboard' },
-        { href: '/team/clients', label: 'Clients', icon: 'users' },
-        { href: '/team/tasks', label: 'Tasks', icon: 'briefcase' },
-        { href: '/team/compliance', label: 'Compliance', icon: 'calendar' },
-        { href: '/team/calendar', label: 'Calendar', icon: 'calendar' },
-        { href: '/team/documents', label: 'Documents', icon: 'file' },
-        { href: '/team/queries', label: 'Queries', icon: 'message' },
-        { href: '/team/notices', label: 'Notices', icon: 'scroll' },
-        { href: '/team/hearings', label: 'Hearings', icon: 'scroll' },
-        { href: '/team/attendance', label: 'Attendance', icon: 'clipboard' },
-        { href: '/team/leave', label: 'Leave', icon: 'clipboard' },
-        { href: '/team/bizlens', label: 'BizLens', icon: 'chart' },
+        // v3 team sidebar — flat
+        { href: '/team',            label: 'Workspace',             icon: 'dashboard' },
+        { href: '/team/compliance', label: 'Compliance Dashboard',  icon: 'chart' },
+        { href: '/team/calendar',   label: 'Compliance Calendar',   icon: 'calendar' },
+        { href: '/team/clients',    label: 'Clients',               icon: 'users' },
+        { href: '/team/tasks',      label: 'Tasks',                 icon: 'briefcase' },
+        { href: '/team/documents',  label: 'Documents',             icon: 'file' },
+        { href: '/team/queries',    label: 'Queries',               icon: 'message' },
+        { href: '/team/notices',    label: 'Notices',               icon: 'scroll' },
+        { href: '/team/hearings',   label: 'Hearings',              icon: 'scroll' },
+        { href: '/team/bizlens',    label: 'BizLens',               icon: 'chart' },
+        { href: '/team/vcfo',       label: 'vCFO',                  icon: 'trending' },
+        { href: '/team/attendance', label: 'Attendance',            icon: 'clipboard' },
+        { href: '/team/leave',      label: 'Leave',                 icon: 'clipboard' },
       ]}
     >
       {children}

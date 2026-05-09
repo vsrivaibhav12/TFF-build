@@ -18,6 +18,33 @@ export async function toggleTaskStepAction(input: z.infer<typeof toggleSchema>):
     const parsed = toggleSchema.safeParse(input);
     if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
     const sb = createClient();
+
+    // 24-hour stage-uncomplete guardrail (v3 #9):
+    // When uncompleting (completed=false), require either:
+    //   (a) admin role, OR
+    //   (b) the same user who completed it AND within 24h of completion.
+    if (!parsed.data.completed) {
+      const { data: existing, error: fetchErr } = await sb
+        .from('task_steps')
+        .select('completed_at, completed_by')
+        .eq('id', parsed.data.step_id)
+        .maybeSingle();
+      if (fetchErr) return fail(fetchErr.message, 'DB');
+      if (existing?.completed_at) {
+        const completedAt = new Date(existing.completed_at).getTime();
+        const ageMs = Date.now() - completedAt;
+        const within24h = ageMs <= 24 * 60 * 60 * 1000;
+        const sameUser = existing.completed_by === me.id;
+        const isAdmin = (me as any).role === 'admin';
+        if (!isAdmin && !(sameUser && within24h)) {
+          return fail(
+            'Cannot uncomplete this step: only the user who signed it off can reopen it within 24 hours, or an admin can override.',
+            'STEP_LOCKED',
+          );
+        }
+      }
+    }
+
     const update = parsed.data.completed
       ? {
           completed_at: new Date().toISOString(),

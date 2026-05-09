@@ -3,23 +3,28 @@ import { notFound } from 'next/navigation';
 import { getTask, listTaskActivity, listTaskNotes } from '@/lib/repositories/tasks';
 import { listTeamUsers } from '@/lib/repositories/clients';
 import { listTaskSteps } from '@/lib/repositories/task-steps';
+import { listDocumentRequestsForTask } from '@/lib/repositories/document-requests';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft } from 'lucide-react';
 import { formatDateIST } from '@/lib/utils';
 import TaskActions from './task-actions';
 import TaskStepsPanel from '@/components/tasks/task-steps-panel';
 import SendReminderButton from '@/components/tasks/send-reminder-button';
+import StuckToggle from '@/components/tasks/stuck-toggle';
+import BlockedOnClientToggle from '@/components/tasks/blocked-on-client-toggle';
+import DocumentRequestsPanel from '@/components/tasks/document-requests-panel';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeamTaskDetail({ params }: { params: { id: string } }) {
   const task = await getTask(params.id);
   if (!task) notFound();
-  const [activity, notes, team, steps] = await Promise.all([
+  const [activity, notes, team, steps, docReqs] = await Promise.all([
     listTaskActivity(params.id),
     listTaskNotes(params.id),
     listTeamUsers(),
     listTaskSteps(params.id),
+    listDocumentRequestsForTask(params.id),
   ]);
 
   return (
@@ -61,9 +66,27 @@ export default async function TeamTaskDetail({ params }: { params: { id: string 
             </p>
           </div>
 
+          <StuckToggle
+            taskId={task.id}
+            isStuck={!!(task as any).is_stuck}
+            reasonCode={(task as any).stuck_reason_code}
+            reasonNote={(task as any).stuck_reason_note}
+          />
+
           <TaskStepsPanel taskId={task.id} initial={steps as any} />
 
-          {task.status === 'awaiting_client' && (
+          <BlockedOnClientToggle
+            taskId={task.id}
+            isBlocked={!!(task as any).is_blocked_on_client}
+          />
+
+          <DocumentRequestsPanel
+            taskId={task.id}
+            subServiceId={(task as any).sub_service_id ?? null}
+            initial={docReqs}
+          />
+
+          {(task as any).is_blocked_on_client && (
             <SendReminderButton taskId={task.id} />
           )}
 

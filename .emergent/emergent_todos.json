@@ -1,42 +1,62 @@
 [
   {
-    "content": "Group C: Task workflow with sign-off",
+    "content": "v3.1-3 Schema, rules, foundations DONE",
     "status": "completed"
   },
   {
-    "content": "Group E: Bulk client import (CSV + Excel) with audit batches",
+    "content": "v3 #1/#4/#5/#6/#9/#10/#17 status, sidebar, stuck, doc-requests, guardrail, inward-out",
     "status": "completed"
   },
   {
-    "content": "Group F: Custom staff role templates with bulk capability application",
-    "status": "completed"
-  },
-  {
-    "content": "Group G: Service-applicability gating (service_kind enum + UI hide)",
-    "status": "completed"
-  },
-  {
-    "content": "Batch test #1 — testing_agent for C+E+F+G",
+    "content": "v3 #7 Custom Fields + Labels (admin defs + per-task UI + filter)",
     "status": "in_progress"
   },
   {
-    "content": "Group D: BizLens native port (logic + types + UI + tests + iframe deletion)",
+    "content": "v3 #8 WorkDone timesheet (timer + manual + reports)",
     "status": "pending"
   },
   {
-    "content": "Test BizLens native",
+    "content": "v3 #11/#12/Settings hub: Profit/Cost Centres + Billing Entities + /admin/settings",
     "status": "pending"
   },
   {
-    "content": "Group H: DPDP audit + production readiness",
+    "content": "Test checkpoint 1: foundations + DR + custom fields + workdone + PC/CC/BE",
     "status": "pending"
   },
   {
-    "content": "Group I: Polish + audit-trail surfacing",
+    "content": "v3 #3 Compliance Calendar rules engine + admin rules editor + cron",
     "status": "pending"
   },
   {
-    "content": "Final batch test",
+    "content": "v3 #2 Compliance Dashboard grid (Comp + Non-Comp views)",
+    "status": "pending"
+  },
+  {
+    "content": "v3 #13 GSTN paste import (format-only)",
+    "status": "pending"
+  },
+  {
+    "content": "v3 #14 Geo-tagged attendance check-in",
+    "status": "pending"
+  },
+  {
+    "content": "v3 #16 Solution Log auto-populate + portal page + quarterly cron",
+    "status": "pending"
+  },
+  {
+    "content": "Test checkpoint 2",
+    "status": "pending"
+  },
+  {
+    "content": "v3 #15 BizLens native port",
+    "status": "pending"
+  },
+  {
+    "content": "v3 #18 Polish + Day-31 DPDP audit",
+    "status": "pending"
+  },
+  {
+    "content": "Final test",
     "status": "pending"
   }
 ]

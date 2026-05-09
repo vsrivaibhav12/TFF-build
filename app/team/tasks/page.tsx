@@ -24,9 +24,9 @@ export default async function TeamTasksList({ searchParams }: { searchParams: { 
   const filters: { value: string; label: string }[] = [
     { value: '', label: 'All' },
     { value: 'pending', label: 'Pending' },
-    { value: 'awaiting_client', label: 'Awaiting client' },
     { value: 'in_progress', label: 'In progress' },
-    { value: 'review', label: 'In review' },
+    { value: 'blocked', label: 'Awaiting client' },
+    { value: 'stuck', label: 'Stuck' },
     { value: 'completed', label: 'Completed' },
   ];
   return (

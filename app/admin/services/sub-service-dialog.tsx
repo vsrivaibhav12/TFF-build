@@ -24,6 +24,7 @@ export default function SubServiceDialog({ serviceId, serviceName, initial, chil
     due_day_of_month: initial?.due_day_of_month ?? null,
     is_recurring: initial?.is_recurring ?? true,
     requires_client_input: initial?.requires_client_input ?? true,
+    requires_verification: initial?.requires_verification ?? false,
     is_active: initial?.is_active ?? true,
   });
   function set<K extends keyof typeof f>(k: K, v: any) { setF((p) => ({ ...p, [k]: v })); }
@@ -69,6 +70,10 @@ export default function SubServiceDialog({ serviceId, serviceName, initial, chil
           <div className="flex items-center justify-between">
             <div><Label>Needs client input</Label><p className="text-xs text-zinc-500">Adds an awaiting-client step in the workflow.</p></div>
             <Switch checked={f.requires_client_input} onCheckedChange={(v) => set('requires_client_input', !!v)} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div><Label>Requires reviewer verification</Label><p className="text-xs text-zinc-500">When completed, mark as pending verification until a senior reviewer signs off. Internal-only — clients see &quot;Filed / Done&quot; immediately.</p></div>
+            <Switch checked={f.requires_verification} onCheckedChange={(v) => set('requires_verification', !!v)} data-testid="ss-requires-verification" />
           </div>
           <div className="flex items-center justify-between">
             <div><Label>Active</Label><p className="text-xs text-zinc-500">Inactive sub-services don’t appear when assigning to clients.</p></div>

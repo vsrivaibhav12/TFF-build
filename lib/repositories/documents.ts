@@ -15,14 +15,3 @@ export async function listDocuments(filter?: { clientId?: string; visibleToClien
   return data ?? [];
 }
 
-export async function listInwardOutward(clientId?: string) {
-  const sb = createClient();
-  let q = sb
-    .from('inward_outward_register')
-    .select('id, client_id, direction, description, document_type, quantity, date_received, date_returned, expected_return_date, received_from_name, handed_to_name, notes, created_at, clients(business_name)')
-    .order('created_at', { ascending: false });
-  if (clientId) q = q.eq('client_id', clientId);
-  const { data, error } = await q.limit(200);
-  if (error) throw error;
-  return data ?? [];
-}

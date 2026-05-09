@@ -2,16 +2,29 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { TaskStatus } from '@/lib/validation/schemas';
 
-export async function listTasks(opts: { clientId?: string; assignedTo?: string; status?: TaskStatus[]; limit?: number } = {}) {
+export async function listTasks(opts: {
+  clientId?: string;
+  assignedTo?: string;
+  status?: Array<TaskStatus | 'blocked' | 'stuck'>;
+  limit?: number;
+} = {}) {
   const sb = createClient();
   let q = sb
     .from('tasks')
-    .select('id, title, status, priority, due_date, period_year, period_month, assigned_to, reviewer_id, sub_service_id, client_id, created_at, updated_at, clients(id, business_name)')
+    .select('id, title, status, priority, due_date, period_year, period_month, assigned_to, reviewer_id, sub_service_id, client_id, is_blocked_on_client, is_stuck, stuck_reason_code, verification_status, created_at, updated_at, clients(id, business_name)')
     .eq('is_deleted', false)
     .order('due_date', { ascending: true, nullsFirst: false });
   if (opts.clientId) q = q.eq('client_id', opts.clientId);
   if (opts.assignedTo) q = q.eq('assigned_to', opts.assignedTo);
-  if (opts.status?.length) q = q.in('status', opts.status);
+  if (opts.status?.length) {
+    // Pseudo-statuses 'blocked' and 'stuck' are flags, not enum values.
+    const realStatuses = opts.status.filter((s): s is TaskStatus =>
+      s === 'pending' || s === 'in_progress' || s === 'completed' || s === 'cancelled',
+    );
+    if (opts.status.includes('blocked')) q = q.eq('is_blocked_on_client', true);
+    else if (opts.status.includes('stuck')) q = q.eq('is_stuck', true);
+    else if (realStatuses.length > 0) q = q.in('status', realStatuses);
+  }
   if (opts.limit) q = q.limit(opts.limit);
   const { data, error } = await q;
   if (error) throw error;

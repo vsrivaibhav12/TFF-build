@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Briefcase, Users, MessageSquare, Calendar, FileText, Settings, ShieldCheck, ScrollText } from 'lucide-react';
+import { Search, Briefcase, Users, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CmdItem {
@@ -13,20 +13,9 @@ interface CmdItem {
   keywords?: string;
 }
 
-const BASE_ITEMS: CmdItem[] = [
-  { id: 'go-clients', label: 'Go to clients', href: '/admin/clients', group: 'Navigate', icon: <Users className="h-3.5 w-3.5" /> },
-  { id: 'go-tasks', label: 'Go to tasks', href: '/team/tasks', group: 'Navigate', icon: <Briefcase className="h-3.5 w-3.5" /> },
-  { id: 'go-queries', label: 'Go to queries', href: '/team/queries', group: 'Navigate', icon: <MessageSquare className="h-3.5 w-3.5" /> },
-  { id: 'go-cal', label: 'Go to compliance calendar', href: '/team/calendar', group: 'Navigate', icon: <Calendar className="h-3.5 w-3.5" /> },
-  { id: 'go-docs', label: 'Go to documents', href: '/team/documents', group: 'Navigate', icon: <FileText className="h-3.5 w-3.5" /> },
-  { id: 'go-notices', label: 'Go to notices', href: '/team/notices', group: 'Navigate', icon: <ScrollText className="h-3.5 w-3.5" /> },
-  { id: 'go-dsc', label: 'Go to DSC vault', href: '/admin/dsc', group: 'Navigate', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-  { id: 'go-cred', label: 'Go to credentials', href: '/admin/credentials', group: 'Navigate', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-  { id: 'go-payroll', label: 'Go to payroll', href: '/admin/payroll', group: 'Navigate', icon: <Briefcase className="h-3.5 w-3.5" /> },
-  { id: 'go-audit', label: 'Go to audit trail', href: '/admin/audit', group: 'Navigate', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-  { id: 'new-client', label: 'New client (onboarding wizard)', href: '/admin/clients/new', group: 'Create', icon: <Users className="h-3.5 w-3.5" /> },
-  { id: 'go-account', label: 'Notification preferences', href: '/account/notifications', group: 'Settings', icon: <Settings className="h-3.5 w-3.5" /> },
-];
+// v3: Cmd-K is RECORD search only — clients, tasks, notices.
+// Navigation between pages is the sidebar's job. No "Go to ..." entries.
+const BASE_ITEMS: CmdItem[] = [];
 
 export default function CommandPalette() {
   const router = useRouter();
@@ -49,16 +38,23 @@ export default function CommandPalette() {
 
   // When query changes, fetch dynamic suggestions (clients matching)
   useEffect(() => {
-    if (!open || q.length < 2) { setItems(BASE_ITEMS); return; }
+    if (!open || q.length < 2) { setItems([]); return; }
     startTransition(async () => {
       try {
         const r = await fetch(`/api/cmdk/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' });
         const j = await r.json();
-        const dyn: CmdItem[] = (j.clients ?? []).map((c: any) => ({
-          id: `client-${c.id}`, label: c.business_name, group: 'Clients', href: `/admin/clients/${c.id}`, icon: <Users className="h-3.5 w-3.5" />,
-        }));
-        setItems([...BASE_ITEMS, ...dyn]);
-      } catch { setItems(BASE_ITEMS); }
+        const out: CmdItem[] = [];
+        for (const c of j.clients ?? []) {
+          out.push({ id: `client-${c.id}`, label: c.business_name, group: 'Clients', href: `/admin/clients/${c.id}`, icon: <Users className="h-3.5 w-3.5" /> });
+        }
+        for (const t of j.tasks ?? []) {
+          out.push({ id: `task-${t.id}`, label: t.title, group: 'Tasks', href: `/team/tasks/${t.id}`, icon: <Briefcase className="h-3.5 w-3.5" />, keywords: t.client_name });
+        }
+        for (const n of j.notices ?? []) {
+          out.push({ id: `notice-${n.id}`, label: n.subject || n.notice_type, group: 'Notices', href: `/team/notices/${n.id}`, icon: <ScrollText className="h-3.5 w-3.5" />, keywords: n.client_name });
+        }
+        setItems(out);
+      } catch { setItems([]); }
     });
   }, [q, open]);
 
@@ -83,14 +79,15 @@ export default function CommandPalette() {
               else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
               else if (e.key === 'Enter') { e.preventDefault(); if (filtered[active]) go(filtered[active].href); }
             }}
-            placeholder="Search anything… clients, modules, settings"
+            placeholder="Search clients, tasks, notices…"
             className="flex-1 outline-none text-sm placeholder:text-zinc-400"
             data-testid="cmdk-input"
           />
           <kbd className="text-xs text-zinc-400 font-mono">esc</kbd>
         </div>
         <div className="max-h-96 overflow-y-auto">
-          {Object.keys(groups).length === 0 && <div className="p-8 text-sm text-center text-zinc-500">No matches.</div>}
+          {q.length < 2 && <div className="p-8 text-sm text-center text-zinc-500">Type to search clients, tasks, notices…</div>}
+          {q.length >= 2 && Object.keys(groups).length === 0 && <div className="p-8 text-sm text-center text-zinc-500">No matches.</div>}
           {Object.entries(groups).map(([gname, items]) => (
             <div key={gname}>
               <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">{gname}</div>

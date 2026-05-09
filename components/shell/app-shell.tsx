@@ -26,7 +26,6 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import NotificationsBell from './notifications-bell';
-import HeaderSearch from './header-search';
 import CommandPalette from './command-palette';
 import ShortcutsHelp from '@/components/sophistication/shortcuts-help';
 import ViewAsClientToggle from '@/components/sophistication/view-as-client-toggle';
@@ -86,14 +85,14 @@ export default function AppShell({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Sidebar (desktop) */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50">
-        <div className="px-6 py-6 border-b border-zinc-200">
-          <Link href="/" className="text-base font-bold tracking-tight text-zinc-900">
+      <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-zinc-200 bg-zinc-50">
+        <div className="px-5 py-5 border-b border-zinc-200">
+          <Link href="/" className="text-sm font-bold tracking-tight text-zinc-900">
             The <span className="text-teal-600">Fiscal Fulcrum</span>
           </Link>
-          <div className="mt-1 text-xs text-zinc-500">{roleBadge}</div>
+          <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-400">{roleBadge}</div>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
           {nav.map((n) => {
             const Icon = ICONS[n.icon] ?? Layout;
             const active = pathname === n.href || pathname.startsWith(n.href + '/');
@@ -103,26 +102,26 @@ export default function AppShell({
                 href={n.href}
                 data-testid={`nav-${n.label.toLowerCase().replace(/ /g, '-')}`}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors',
                   active
-                    ? 'bg-white text-teal-700 border border-zinc-200'
+                    ? 'bg-white text-teal-700 shadow-sm border border-zinc-200'
                     : 'text-zinc-600 hover:bg-white hover:text-zinc-900'
                 )}
               >
-                <Icon className={cn('h-4 w-4', active ? 'text-teal-600' : 'text-zinc-400')} />
-                {n.label}
+                <Icon className={cn('h-3.5 w-3.5 shrink-0', active ? 'text-teal-600' : 'text-zinc-400')} />
+                <span className="truncate">{n.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-zinc-200 px-4 py-4">
-          <div className="text-xs text-zinc-500 truncate">{user.email}</div>
+        <div className="border-t border-zinc-200 px-4 py-3">
+          <div className="text-[11px] text-zinc-500 truncate">{user.email}</div>
           <button
             onClick={logout}
             data-testid="logout-btn"
-            className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+            className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-zinc-600 hover:text-zinc-900"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
             Sign out
           </button>
         </div>
@@ -174,9 +173,8 @@ export default function AppShell({
 
       {/* Main */}
       <main className="flex-1 min-w-0 px-6 md:px-8 py-8 md:py-12 pt-20 md:pt-12">
-        {/* Desktop top bar (search + notifications + utilities) */}
-        <div className="hidden md:flex items-center justify-end gap-3 mb-6">
-          <HeaderSearch />
+        {/* Desktop top bar (notifications + utilities only — sidebar is now the discovery surface) */}
+        <div className="hidden md:flex items-center justify-end gap-2 mb-6">
           <NotificationsBell />
         </div>
         <div className="mx-auto w-full max-w-7xl">{children}</div>

@@ -1,33 +1,108 @@
-import { listAllUpcomingDueDates } from '@/lib/repositories/compliance';
-import { listAllNotices, listHearings } from '@/lib/repositories/notices';
-import { listExpiringDsc } from '@/lib/repositories/dsc';
-import ComplianceCalendar from './calendar';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { Badge } from '@/components/ui/badge';
+import { formatDateIST } from '@/lib/utils';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
+const KIND_LABEL: Record<string, string> = {
+  gst: 'GST', tds: 'TDS', tcs: 'TCS', it: 'Income Tax', roc: 'ROC',
+  pf: 'PF', esi: 'ESI', pt: 'PT', other: 'Other',
+};
+
+/**
+ * v3 Compliance Calendar.
+ * Reads from compliance_calendar_events (refreshed by cron). Groups by month.
+ */
 export default async function TeamCalendarPage() {
-  const [agg, notices, hearings, dsc] = await Promise.all([
-    listAllUpcomingDueDates(120),
-    listAllNotices(),
-    listHearings(),
-    listExpiringDsc(120),
-  ]);
-  // Flatten all into a unified event shape
-  const events: Array<{ date: string; type: string; label: string; clientName: string; href?: string; severity: 'info' | 'warning' | 'danger' }> = [];
-  for (const f of agg.gst as any[]) events.push({ date: f.due_date, type: 'GST', label: `${f.return_type} ${f.period_month}/${f.period_year}`, clientName: f.clients?.business_name ?? '', href: `/team/clients/${f.client_id}`, severity: f.status === 'filed' ? 'info' : 'warning' });
-  for (const f of agg.tds as any[]) events.push({ date: f.due_date, type: 'TDS', label: `Q${f.period_quarter} ${f.period_year}`, clientName: f.clients?.business_name ?? '', href: `/team/clients/${f.client_id}`, severity: f.status === 'filed' ? 'info' : 'warning' });
-  for (const f of agg.it as any[]) events.push({ date: f.due_date, type: 'IT', label: `FY ${f.fy_ending_year}`, clientName: f.clients?.business_name ?? '', href: `/team/clients/${f.client_id}`, severity: f.status === 'filed' ? 'info' : 'warning' });
-  for (const n of notices as any[]) if (n.due_date) events.push({ date: n.due_date, type: 'Notice', label: n.subject ?? n.notice_number ?? n.notice_type, clientName: n.clients?.business_name ?? '', severity: n.status === 'closed' ? 'info' : 'warning' });
-  for (const h of hearings as any[]) if (h.hearing_scheduled_date) events.push({ date: h.hearing_scheduled_date, type: 'Hearing', label: h.subject ?? h.hearing_type ?? 'Hearing', clientName: h.clients?.business_name ?? '', severity: 'warning' });
-  for (const d of dsc as any[]) events.push({ date: d.expiry_date, type: 'DSC', label: `${d.holder_name} expires`, clientName: d.clients?.business_name ?? '', severity: 'danger' });
+  const sb = createClient();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const horizonIso = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  const { data: rows } = await sb
+    .from('compliance_calendar_events')
+    .select('id, client_id, rule_code, period_label, due_date, status, task_id, clients(business_name), compliance_calendar_rules(display_name, service_kind)')
+    .gte('due_date', todayIso)
+    .lte('due_date', horizonIso)
+    .order('due_date', { ascending: true })
+    .limit(500);
+
+  const grouped: Record<string, any[]> = {};
+  for (const r of rows ?? []) {
+    const key = (r as any).due_date.slice(0, 7); // yyyy-mm
+    grouped[key] = grouped[key] ?? [];
+    grouped[key].push(r);
+  }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Compliance calendar</h1>
-        <p className="text-zinc-500 mt-1">All filings, notices, hearings and DSC expiries on a single grid.</p>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <CalendarIcon className="h-7 w-7 text-teal-600" />
+          Compliance Calendar
+        </h1>
+        <p className="text-zinc-500 mt-1">
+          Statutory due dates auto-generated from client compliance profiles. Click any
+          row to start working on it.
+        </p>
       </div>
-      <ComplianceCalendar events={events} />
+
+      {(rows?.length ?? 0) === 0 ? (
+        <div className="rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-12 text-center">
+          <CalendarIcon className="h-6 w-6 text-zinc-400 mx-auto mb-2" />
+          <p className="text-sm text-zinc-500 max-w-md mx-auto">
+            No upcoming statutory events. Make sure each client has a compliance profile set
+            (under Clients → entity → Compliance profile), then run a refresh from{' '}
+            <Link href="/admin/settings/compliance-rules" className="text-teal-700 hover:underline">Settings → Compliance rules</Link>.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6" data-testid="calendar-month-list">
+          {Object.entries(grouped).map(([monthKey, items]) => {
+            const [y, m] = monthKey.split('-');
+            const monthLabel = new Date(`${y}-${m}-01`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            return (
+              <section key={monthKey} className="space-y-2">
+                <h2 className="text-base font-semibold uppercase tracking-wider text-zinc-500">{monthLabel}</h2>
+                <div className="rounded-xl border border-zinc-200 bg-white divide-y">
+                  {items.map((it: any) => (
+                    <div
+                      key={it.id}
+                      className="flex items-start gap-3 p-3 hover:bg-zinc-50"
+                      data-testid={`cal-event-${it.id}`}
+                    >
+                      <div className="text-center w-14 shrink-0">
+                        <div className="text-xl font-semibold tabular-nums">{it.due_date.slice(8, 10)}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-zinc-400">
+                          {new Date(it.due_date).toLocaleDateString('en-IN', { weekday: 'short' })}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">
+                          {it.compliance_calendar_rules?.display_name ?? it.rule_code}
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {it.clients?.business_name ?? '—'} · {it.period_label}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] uppercase">
+                        {KIND_LABEL[it.compliance_calendar_rules?.service_kind] ?? '—'}
+                      </Badge>
+                      {it.task_id ? (
+                        <Link href={`/team/tasks/${it.task_id}`} className="text-xs text-teal-700 hover:underline">
+                          Open task
+                        </Link>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">{it.status}</Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

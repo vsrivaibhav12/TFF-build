@@ -112,13 +112,13 @@ export async function sendTaskReminderAction(input: { task_id: string; message?:
     const sb = createClient();
     const { data: task, error: tErr } = await sb
       .from('tasks')
-      .select('id, title, status, client_id, due_date, clients(business_name)')
+      .select('id, title, status, client_id, due_date, is_blocked_on_client, clients(business_name)')
       .eq('id', input.task_id)
       .maybeSingle();
     if (tErr) return fail(tErr.message, 'DB');
     if (!task) return fail('Task not found', 'NOT_FOUND');
-    if ((task as any).status !== 'awaiting_client') {
-      return fail('Reminders can only be sent for tasks awaiting the client', 'INVALID_STATE');
+    if (!(task as any).is_blocked_on_client) {
+      return fail('Reminders can only be sent for tasks waiting on the client', 'INVALID_STATE');
     }
 
     // Throttle: refuse if a reminder activity exists within the last 6h

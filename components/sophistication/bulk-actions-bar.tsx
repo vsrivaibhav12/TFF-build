@@ -34,9 +34,8 @@ export default function BulkActionsBar({ ids, onClear }: { ids: string[]; onClea
         <SelectTrigger className="w-44"><SelectValue placeholder="Set status…" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="in_progress">In progress</SelectItem>
-          <SelectItem value="awaiting_client">Awaiting client</SelectItem>
-          <SelectItem value="review">Review</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
+          <SelectItem value="cancelled">Cancelled</SelectItem>
         </SelectContent>
       </Select>
       <Button onClick={applyStatus} disabled={pending || !status} data-testid="bulk-apply">{pending ? 'Updating…' : 'Apply'}</Button>

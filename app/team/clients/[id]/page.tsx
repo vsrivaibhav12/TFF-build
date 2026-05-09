@@ -67,38 +67,43 @@ export default async function TeamClientDetail({ params }: { params: { id: strin
         </div>
       </div>
 
-      {/* Quick action chips for subscribed advisory modules */}
-      {(showBizlens || showVcfo || showProjection) && (
-        <div className="flex flex-wrap gap-2">
-          {showBizlens && (
-            <Link
-              href={`/team/clients/${params.id}/bizlens`}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
-              data-testid="quick-bizlens"
-            >
-              <BarChart3 className="h-3.5 w-3.5 text-teal-600" /> BizLens
-            </Link>
-          )}
-          {showVcfo && (
-            <Link
-              href={`/team/clients/${params.id}/vcfo`}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
-              data-testid="quick-vcfo"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-teal-600" /> vCFO
-            </Link>
-          )}
-          {showProjection && (
-            <Link
-              href={`/team/clients/${params.id}/projection`}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
-              data-testid="quick-projection"
-            >
-              <FileText className="h-3.5 w-3.5 text-teal-600" /> Tax projection
-            </Link>
-          )}
-        </div>
-      )}
+      {/* Quick action chips for subscribed advisory modules + compliance profile */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/team/clients/${params.id}/compliance-profile`}
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
+          data-testid="quick-compliance-profile"
+        >
+          <FileText className="h-3.5 w-3.5 text-teal-600" /> Compliance profile
+        </Link>
+        {showBizlens && (
+          <Link
+            href={`/team/clients/${params.id}/bizlens`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
+            data-testid="quick-bizlens"
+          >
+            <BarChart3 className="h-3.5 w-3.5 text-teal-600" /> BizLens
+          </Link>
+        )}
+        {showVcfo && (
+          <Link
+            href={`/team/clients/${params.id}/vcfo`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
+            data-testid="quick-vcfo"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-teal-600" /> vCFO
+          </Link>
+        )}
+        {showProjection && (
+          <Link
+            href={`/team/clients/${params.id}/projection`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:border-teal-300 hover:bg-teal-50/30"
+            data-testid="quick-projection"
+          >
+            <FileText className="h-3.5 w-3.5 text-teal-600" /> Tax projection
+          </Link>
+        )}
+      </div>
 
       <Tabs defaultValue="overview">
         <TabsList>

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     .from('tasks')
     .select('id, title, due_date, assigned_to, client_id, status, clients(business_name), users_profile!tasks_assigned_to_fkey(email, full_name)')
     .eq('is_deleted', false)
-    .in('status', ['pending', 'awaiting_client', 'in_progress', 'review'])
+    .in('status', ['pending', 'in_progress'])
     .gte('due_date', today.toISOString().slice(0, 10))
     .lte('due_date', cutoff.toISOString().slice(0, 10));
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

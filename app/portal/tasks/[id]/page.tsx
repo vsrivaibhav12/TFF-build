@@ -2,21 +2,43 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTask, listTaskNotes } from '@/lib/repositories/tasks';
 import { listTaskSteps } from '@/lib/repositories/task-steps';
+import { listDocumentRequestsForTask } from '@/lib/repositories/document-requests';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, AlertTriangle } from 'lucide-react';
 import { formatDateIST } from '@/lib/utils';
 import ClientNoteForm from './note-form';
 import TaskStepsReadOnly from '@/components/tasks/task-steps-readonly';
+import PortalDocumentChecklist from '@/components/portal/document-checklist';
+import {
+  getClientVisibleStatus,
+  CLIENT_VISIBLE_LABELS,
+  CLIENT_VISIBLE_VARIANTS,
+} from '@/lib/services/client-visible-status';
+
+const STUCK_REASON_FRIENDLY: Record<string, string> = {
+  client_clarification: 'We need a clarification from you',
+  gst_portal_down: 'GST portal is currently unavailable',
+  itd_portal_down: 'Income Tax portal is currently unavailable',
+  mcadown: 'MCA portal is currently unavailable',
+  mismatch_investigation: 'Investigating a reconciliation mismatch',
+  awaiting_third_party: 'Awaiting response from a bank, vendor or counterparty',
+  awaiting_management: 'Awaiting management decision',
+  dsc_issue: 'Digital signature issue — please coordinate with us',
+  payment_pending: 'Awaiting tax/fee payment',
+  other: 'On hold',
+};
 
 export const dynamic = 'force-dynamic';
 
 export default async function PortalTaskDetail({ params }: { params: { id: string } }) {
   const task = await getTask(params.id);
   if (!task) notFound();
-  const [notes, steps] = await Promise.all([
+  const [notes, steps, docReqs] = await Promise.all([
     listTaskNotes(params.id),
     listTaskSteps(params.id),
+    listDocumentRequestsForTask(params.id),
   ]);
+  const cs = getClientVisibleStatus(task as any);
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -29,14 +51,30 @@ export default async function PortalTaskDetail({ params }: { params: { id: strin
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
         <div className="mt-2 flex items-center gap-2">
-          <Badge variant={task.status === 'completed' ? 'success' : 'warning'}>
-            {task.status.replace('_', ' ')}
+          <Badge variant={CLIENT_VISIBLE_VARIANTS[cs] as any} data-testid="portal-task-cs">
+            {CLIENT_VISIBLE_LABELS[cs]}
           </Badge>
           <span className="text-sm text-zinc-500">
             due {formatDateIST(task.due_date)}
           </span>
         </div>
       </div>
+
+      {cs === 'stuck' && (
+        <div className="rounded-xl border border-red-200 bg-red-50/40 p-5 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div>
+            <div className="font-semibold text-red-900">
+              {STUCK_REASON_FRIENDLY[(task as any).stuck_reason_code] ?? 'On hold'}
+            </div>
+            {(task as any).stuck_reason_note && (
+              <p className="text-sm text-red-800 mt-1 whitespace-pre-wrap">
+                {(task as any).stuck_reason_note}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {task.description && (
         <div className="rounded-xl border border-zinc-200 p-6 bg-white">
@@ -46,6 +84,8 @@ export default async function PortalTaskDetail({ params }: { params: { id: strin
           </p>
         </div>
       )}
+
+      <PortalDocumentChecklist taskId={task.id} initial={docReqs} />
 
       <TaskStepsReadOnly steps={steps as any} />
 

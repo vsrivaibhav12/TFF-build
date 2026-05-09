@@ -15,9 +15,9 @@ import { formatDateIST, formatCurrencyINR } from '@/lib/utils';
 export default function ComplianceEntry({ clientId, gst, tds, it }: { clientId: string; gst: any[]; tds: any[]; it: any[] }) {
   return (
     <div className="space-y-8">
-      <Section title="GST filings" rows={gst} render={(r) => `${r.return_type} · ${r.period_month}/${r.period_year}`} status={(r) => r.status} extra={(r) => r.taxable_turnover ? formatCurrencyINR(Number(r.taxable_turnover), { compact: true }) : '—'} entry={<GstEntry clientId={clientId} />} />
-      <Section title="TDS filings" rows={tds} render={(r) => `Q${r.period_quarter} ${r.period_year}`} status={(r) => r.status} extra={(r) => r.tax_deposited ? formatCurrencyINR(Number(r.tax_deposited), { compact: true }) : '—'} entry={<TdsEntry clientId={clientId} />} />
-      <Section title="Income tax" rows={it} render={(r) => `FY ${r.fy_ending_year - 1}-${r.fy_ending_year}`} status={(r) => r.status} extra={(r) => r.tax_liability ? formatCurrencyINR(Number(r.tax_liability), { compact: true }) : '—'} entry={<ItEntry clientId={clientId} />} />
+      <Section title="GST filings" rows={gst} render={(r: any) => `${r.return_type} · ${r.period_month}/${r.period_year}`} status={(r: any) => r.status} extra={(r: any) => r.taxable_turnover ? formatCurrencyINR(Number(r.taxable_turnover), { compact: true }) : '—'} entry={<GstEntry clientId={clientId} />} />
+      <Section title="TDS filings" rows={tds} render={(r: any) => `Q${r.period_quarter} ${r.period_year}`} status={(r: any) => r.status} extra={(r: any) => r.tax_deposited ? formatCurrencyINR(Number(r.tax_deposited), { compact: true }) : '—'} entry={<TdsEntry clientId={clientId} />} />
+      <Section title="Income tax" rows={it} render={(r: any) => `FY ${r.fy_ending_year - 1}-${r.fy_ending_year}`} status={(r: any) => r.status} extra={(r: any) => r.tax_liability ? formatCurrencyINR(Number(r.tax_liability), { compact: true }) : '—'} entry={<ItEntry clientId={clientId} />} />
     </div>
   );
 }

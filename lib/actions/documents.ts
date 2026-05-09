@@ -93,33 +93,3 @@ export async function setDocumentVisibilityAction(input: { id: string; visible_t
   }
 }
 
-// Inward / outward register
-const ioSchema = z.object({
-  client_id: z.string().uuid(),
-  direction: z.enum(['inward', 'outward']),
-  description: z.string().min(1),
-  document_type: z.string().optional(),
-  quantity: z.number().int().optional(),
-  date_received: z.string().optional(),
-  date_returned: z.string().optional(),
-  expected_return_date: z.string().optional(),
-  received_from_name: z.string().optional(),
-  handed_to_name: z.string().optional(),
-  notes: z.string().optional(),
-});
-export async function recordInwardOutwardAction(input: z.infer<typeof ioSchema>): Promise<ActionResult<{ id: string }>> {
-  try {
-    const me = await requireRole(['admin', 'team']);
-    const parsed = ioSchema.safeParse(input);
-    if (!parsed.success) return fail(parsed.error.errors[0]?.message ?? 'Invalid input', 'VALIDATION');
-    const sb = createClient();
-    const payload: any = { ...parsed.data };
-    payload[parsed.data.direction === 'inward' ? 'received_by' : 'handed_by'] = me.id;
-    const { data, error } = await sb.from('inward_outward_register').insert(payload).select('id').single();
-    if (error) return fail(error.message, 'DB');
-    revalidatePath('/team/inward-outward');
-    return ok({ id: data.id });
-  } catch (e: any) {
-    return fail(e?.message ?? 'unknown', e?.code ?? 'UNKNOWN');
-  }
-}

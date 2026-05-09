@@ -33,8 +33,20 @@ export type CreateClientInput = z.infer<typeof createClientSchema>;
 export const updateClientSchema = createClientSchema.partial().extend({ id: z.string().uuid() });
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
 
-export const taskStatusEnum = z.enum(['pending', 'awaiting_client', 'in_progress', 'review', 'completed']);
+export const taskStatusEnum = z.enum(['pending', 'in_progress', 'completed', 'cancelled']);
 export type TaskStatus = z.infer<typeof taskStatusEnum>;
+
+// v3 verification — separate from status. Clients never see this.
+export const verificationStatusEnum = z.enum(['not_required', 'pending', 'verified']);
+export type VerificationStatus = z.infer<typeof verificationStatusEnum>;
+
+// v3 stuck-reason taxonomy.
+export const stuckReasonEnum = z.enum([
+  'client_clarification', 'gst_portal_down', 'itd_portal_down', 'mcadown',
+  'mismatch_investigation', 'awaiting_third_party', 'awaiting_management',
+  'dsc_issue', 'payment_pending', 'other',
+]);
+export type StuckReason = z.infer<typeof stuckReasonEnum>;
 
 export const createTaskSchema = z.object({
   client_id: z.string().uuid(),

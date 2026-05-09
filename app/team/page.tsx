@@ -20,7 +20,7 @@ export default async function TeamWorkspace() {
   await requireRole(['team', 'admin']);
   const [counts, dueSoon, clients, agg, notices, hearings, dsc] = await Promise.all([
     countTasksByStatus(),
-    listTasks({ status: ['pending', 'awaiting_client', 'in_progress', 'review'], limit: 5 }),
+    listTasks({ status: ['pending', 'in_progress'], limit: 5 }),
     listAccessibleClients(),
     listAllUpcomingDueDates(60),
     listAllNotices(),
@@ -54,12 +54,11 @@ export default async function TeamWorkspace() {
             <h2 className="text-base font-semibold">Pipeline</h2>
             <Link href="/team/tasks" className="text-xs text-teal-700 hover:underline">All tasks <ArrowRight className="inline h-3 w-3" /></Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Pending', value: counts.pending ?? 0 },
-              { label: 'Awaiting client', value: counts.awaiting_client ?? 0 },
               { label: 'In progress', value: counts.in_progress ?? 0 },
-              { label: 'In review', value: counts.review ?? 0 },
+              { label: 'Cancelled', value: counts.cancelled ?? 0 },
               { label: 'Completed', value: counts.completed ?? 0 },
             ].map((m) => (
               <div key={m.label} className="rounded-lg bg-zinc-50 p-3">

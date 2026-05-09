@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 
 export type NotificationType =
   | 'task_assigned' | 'task_due_soon' | 'task_completed' | 'task_overdue'
-  | 'document_uploaded' | 'query_received' | 'compliance_due' | 'payment_reminder'
+  | 'document_uploaded' | 'document_request' | 'query_received' | 'compliance_due' | 'payment_reminder'
   | 'team_alert' | 'system_alert' | 'other';
 
 export interface NotifyInput {

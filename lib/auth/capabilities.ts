@@ -16,6 +16,13 @@ export const ALL_CAPABILITIES = [
   'documents.upload', 'documents.delete',
   'queries.assign',
   'audit.view', 'firm_dashboard.view', 'insights.configure',
+  // v3 additions
+  'verify_tasks',
+  'manage_billing_entities',
+  'manage_compliance_rules',
+  'manage_custom_fields',
+  'view_workdone_reports',
+  'manage_solution_log',
 ] as const;
 
 export type Capability = typeof ALL_CAPABILITIES[number];

@@ -12,7 +12,7 @@ export default async function AdminDashboard() {
   // KPIs
   const [{ count: activeClients }, { count: openTasks }, { count: overdueTasks }, { count: dscExpiring }, { data: recentAudit }] = await Promise.all([
     sb.from('clients').select('id', { head: true, count: 'exact' }).eq('is_deleted', false),
-    sb.from('tasks').select('id', { head: true, count: 'exact' }).eq('is_deleted', false).in('status', ['pending', 'in_progress', 'review', 'awaiting_client']),
+    sb.from('tasks').select('id', { head: true, count: 'exact' }).eq('is_deleted', false).in('status', ['pending', 'in_progress']),
     sb.from('compliance_status').select('id', { head: true, count: 'exact' }).eq('is_overdue', true),
     sb.from('dsc_records').select('id', { head: true, count: 'exact' }).eq('is_deleted', false).eq('status', 'active').lte('expiry_date', new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10)),
     sb.from('global_audit_log').select('id, action, entity_type, entity_id, performed_at, performed_by, users_profile(full_name)').order('performed_at', { ascending: false }).limit(15),
